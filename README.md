@@ -1,5 +1,5 @@
 # LSH-Project
 
-Done:	Random data generation
-	Random query generation
-	Find true nearest neighbors by linear scan
+Done:	Random data generation\n
+	Random query generation\n
+	Find true nearest neighbors by linear scan\n
