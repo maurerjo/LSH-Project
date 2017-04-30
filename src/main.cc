@@ -57,23 +57,45 @@ void findNearestNeighbours(int size, int dimension, int num_queries, vector<floa
 	}
 }
 
-int main(){
-cout << "start\n";
-int size = (1<<10);
-int dimension = 128;
-vector<float> data(size*dimension);
-cout << "create Data Set:\n"<<size<<" data points\n"<<dimension<<" dimensions\n";
-createData(size, dimension, data);
-cout << "finished creating data\n\n";
-int num_queries = 100;
-vector<float> queries(num_queries*dimension);
-cout << "create "<<num_queries<<" queries\n";
-createQueries(num_queries, dimension, queries);
-cout << "finished creating queries\n\n";
-vector<int> nnIDs(num_queries);
-cout << "calculate nearest neighbour via linear scan\n";
-findNearestNeighbours(size, dimension, num_queries, data, queries, nnIDs);
-cout << "found nearest neighbour\n";
+void crosspolytope(int k, int dimension, int num_table, int num_rotation, vector<int> &result){
+	
+}
 
-return 0;
+int main(){
+    cout << "start\n";
+    int size = (1<<10);
+    int dimension = 128;
+    vector<float> data(size*dimension);
+    cout << "create Data Set:\n"<<size<<" data points\n"<<dimension<<" dimensions\n";
+    createData(size, dimension, data);
+    cout << "finished creating data\n\n";
+    int num_queries = 100;
+    vector<float> queries(num_queries*dimension);
+    cout << "create "<<num_queries<<" queries\n";
+    createQueries(num_queries, dimension, queries);
+    cout << "finished creating queries\n\n";
+    vector<int> nnIDs(num_queries);
+    cout << "calculate nearest neighbour via linear scan\n";
+    findNearestNeighbours(size, dimension, num_queries, data, queries, nnIDs);
+    cout << "found nearest neighbour\n";
+    //cross polytope
+    cout << "Cross polytope hash" << endl;
+    //cross polytope parameters
+    int k=3, num_table=10, num_rotation=3;
+    //setup tables
+    cout << "Setup Tables" << endl;
+
+    cout << "Finished Table Setup" << endl;
+    cout << "Start queries" << endl;
+    vector<int> cp_result(num_queries);
+    crosspolytope(k, dimension, num_table, num_rotation, cp_result);
+    cout << "Finished queries" << endl;
+    int correct_nnIDs=0;
+    for(int i = 0; i< num_queries;i++){
+        if(cp_result[i]==nnIDs[i]){
+            correct_nnIDs++;
+        }
+    }
+    cout << ((float)correct_nnIDs)/((float)num_queries) << "% neighbours found"<<endl;
+    return 0;
 }
