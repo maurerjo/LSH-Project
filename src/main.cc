@@ -7,6 +7,7 @@
 #include <stdexcept>
 #include <random>
 #include <vector>
+#include <algorithm>
 
 using namespace std;
  
@@ -56,8 +57,46 @@ void findNearestNeighbours(int size, int dimension, int num_queries, vector<floa
 	}
 }
 
-void crosspolytope(int k, int dimension, int num_table, int num_rotation, vector<int> &result){
-	
+//the same as decodeCP of falconn, if data has no 0 entries
+static int locality_sensitive_hash(const float &data, int_fast64_t dim) {
+    int res = dim-1;
+    float best = data;
+    if (-data > best) {
+        res += dim;
+    }
+    return res;
+}
+
+void crosspolytope(vector<float> &x, int k, int dimension, int num_table, int num_rotation, vector<int> &result){
+    for(int i = 0; i < result.size();i++){
+        result[i]=0;
+        for(int ii = 0; ii<k-1;ii++){
+            result[i]<<=(int)ceil(log2(dimension))+1;
+            result[i]|= locality_sensitive_hash(x[i * k + ii], dimension);
+        }
+        result[i]<<=(int)ceil(log2(dimension))+1;
+        result[i]|= locality_sensitive_hash(x[i * k + k - 1], dimension);
+    }
+}
+
+void random_rotation(vector<float> &x, vector<float>  &random_vector, vector<float> &rotated_x){
+    if(x.size()!=random_vector.size()||x.size()!=rotated_x.size())
+        return;//TODO probably should throw error
+    //find next smaller power of 2 for hadamard pseudo random rotation
+    int log_dim = (int)floor(log2(x.size()));
+    int h_dim = 1<<log_dim;
+    //hadamard scalar
+    float scalar = pow(2,-(log_dim/2.0));
+    //hadamard transform
+    for(int i = 0;i<h_dim;i++){
+        for(int ii = 0; ii< h_dim; ii++){
+            rotated_x[i] += x[ii]*pow(-1,i*ii);
+        }
+        rotated_x[i]*=scalar;
+    }
+    for(int i = 0;i<x.size();i++){
+        rotated_x[i] = x[i]*random_vector[i];
+    }
 }
 
 int main(){
@@ -102,7 +141,13 @@ int main(){
     }
     cout << "Setup Tables" << endl;
     for(int i = 0; i<num_table;i++){
-        
+        for(int ii = 0; ii < size; ii++){
+            for(int r = 0; r < num_rotation;r++){
+                vector<float>::const_iterator first = data.begin() + r*dimension;
+                vector<float>::const_iterator last = data.begin() + (r+1)*dimension;
+                vector<float> data_vec(first, last);
+            }
+        }
     }
     cout << "Finished Table Setup" << endl;
     cout << "Start queries" << endl;
