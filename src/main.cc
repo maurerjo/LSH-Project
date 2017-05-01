@@ -21,7 +21,6 @@ mt19937_64 gen(seed);
 void createData(int size, int dimension, std::vector<float> &data){
 
 	normal_distribution<float> dist_normal(0.0, 1.0);
-	uniform_int_distribution<int> dist_uniform(0, dimension - 1);
 	for(int i = 0;i < size; i++){
 		for(int k = 0; k < dimension; k++){
 			data[i*dimension+k]=dist_normal(gen);
@@ -83,8 +82,28 @@ int main(){
     //cross polytope parameters
     int k=3, num_table=10, num_rotation=3;
     //setup tables
+    cout << "Create Tables" << endl;
+    int table_size = 1<<10;
+    vector<vector<float> > tables(num_table);
+    vector<vector<vector<float> > > random_rotation_vec(num_table);
+    uniform_int_distribution<int> random_bit(0, 1);
+    for(int i = 0; i < num_table;i++){
+        vector<float> table(table_size);
+        tables[i]=table;
+        vector< vector<float> >random_rotation(num_rotation);
+        for(int r = 0;r<num_rotation;r++){
+            vector<float> random_vec(dimension);
+            for(int ii = 0; ii < dimension; ii++){
+                random_vec[ii]=(float)random_bit(gen);
+            }
+            random_rotation[r]=random_vec;
+        }
+        random_rotation_vec[i]=random_rotation;
+    }
     cout << "Setup Tables" << endl;
-
+    for(int i = 0; i<num_table;i++){
+        
+    }
     cout << "Finished Table Setup" << endl;
     cout << "Start queries" << endl;
     vector<int> cp_result(num_queries);
