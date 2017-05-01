@@ -57,25 +57,36 @@ void findNearestNeighbours(int size, int dimension, int num_queries, vector<floa
 	}
 }
 
-//the same as decodeCP of falconn, if data has no 0 entries
-static int locality_sensitive_hash(const float &data, int_fast64_t dim) {
-    int res = dim-1;
-    float best = data;
-    if (-data > best) {
-        res += dim;
+//the same as decodeCP of falconn, for comparability
+static int locality_sensitive_hash(const vector<float> &data, int dim) {
+    int res = 0;
+    float best = data[0];
+    if (-data[0] > best) {
+        best = -data[0];
+        res = dim;
+    }
+    for (int_fast64_t ii = 1; ii < dim; ++ii) {
+        if (data[ii] > best) {
+            best = data[ii];
+            res = ii;
+        } else if (-data[ii] > best) {
+            best = -data[ii];
+            res = ii + dim;
+        }
     }
     return res;
 }
 
 void crosspolytope(vector<float> &x, int k, int dimension, int num_table, int num_rotation, vector<int> &result){
+    vector<float> rotated_x(x.size());
     for(int i = 0; i < result.size();i++){
         result[i]=0;
         for(int ii = 0; ii<k-1;ii++){
             result[i]<<=(int)ceil(log2(dimension))+1;
-            result[i]|= locality_sensitive_hash(x[i * k + ii], dimension);
+            result[i]|= locality_sensitive_hash(x, dimension);
         }
         result[i]<<=(int)ceil(log2(dimension))+1;
-        result[i]|= locality_sensitive_hash(x[i * k + k - 1], dimension);
+        result[i]|= locality_sensitive_hash(x, dimension);
     }
 }
 
@@ -87,7 +98,7 @@ void random_rotation(vector<float> &x, vector<float>  &random_vector, vector<flo
     int h_dim = 1<<log_dim;
     //hadamard scalar
     float scalar = pow(2,-(log_dim/2.0));
-    //hadamard transform
+    //hadamard transform, in O(n^2), but can be done in O(n log(n)) and falconn does it that way
     for(int i = 0;i<h_dim;i++){
         for(int ii = 0; ii< h_dim; ii++){
             rotated_x[i] += x[ii]*pow(-1,i*ii);
@@ -152,7 +163,7 @@ int main(){
     cout << "Finished Table Setup" << endl;
     cout << "Start queries" << endl;
     vector<int> cp_result(num_queries);
-    crosspolytope(k, dimension, num_table, num_rotation, cp_result);
+    //crosspolytope(k, dimension, num_table, num_rotation, cp_result);
     cout << "Finished queries" << endl;
     int correct_nnIDs=0;
     for(int i = 0; i< num_queries;i++){
