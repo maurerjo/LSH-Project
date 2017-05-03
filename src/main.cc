@@ -29,7 +29,7 @@ void createData(int size, int dimension, std::vector<float> &data){
 	for(int i = 0;i < size; i++){
 		for(int k = 0; k < dimension; k++){
 			data[i*dimension+k]=dist_normal(gen);
-		}
+		}//add normalize
 	}
 }
 
@@ -189,7 +189,7 @@ int main(){
             correct_nnIDs++;
         }
     }
-    cout << ((float)correct_nnIDs)/((float)num_queries) << "% neighbours found"<<endl;
+    cout << 100*((float)correct_nnIDs)/((float)num_queries) << "% neighbours found"<<endl;
     return 0;
 }
 
