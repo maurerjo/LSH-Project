@@ -15,6 +15,10 @@ int seed = 49628583;
 mt19937_64 gen(seed);
 
 
+vector<float> &
+rotations(int dimension, int num_rotation, vector<vector<vector<float>>> &random_rotation_vec, int i,
+          vector<float> &data_vec);
+
 /*generate random data
  * @size number of data points genetated
  * @dimension number of dimensions of each data point
@@ -58,7 +62,7 @@ void findNearestNeighbours(int size, int dimension, int num_queries, vector<floa
 }
 
 //the same as decodeCP of falconn, for comparability
-static int locality_sensitive_hash(const vector<float> &data, int dim) {
+static int locality_sensitive_hash(vector<float> &data, int dim) {
     int res = 0;
     float best = data[0];
     if (-data[0] > best) {
@@ -77,8 +81,7 @@ static int locality_sensitive_hash(const vector<float> &data, int dim) {
     return res;
 }
 
-void crosspolytope(vector<float> &x, int k, int dimension, int num_table, int num_rotation, vector<int> &result){
-    vector<float> rotated_x(x.size());
+void crosspolytope(vector<float> &x, int k, int dimension, vector<int> &result){
     for(int i = 0; i < result.size();i++){
         result[i]=0;
         for(int ii = 0; ii<k-1;ii++){
@@ -133,37 +136,52 @@ int main(){
     int k=3, num_table=10, num_rotation=3;
     //setup tables
     cout << "Create Tables" << endl;
-    int table_size = 1<<10;
-    vector<vector<float> > tables(num_table);
+    int table_size = 1<<15;
+    vector<vector<int> > tables(num_table);
     vector<vector<vector<float> > > random_rotation_vec(num_table);
     uniform_int_distribution<int> random_bit(0, 1);
     for(int i = 0; i < num_table;i++){
-        vector<float> table(table_size);
+        vector<int> table(table_size);
         tables[i]=table;
         vector< vector<float> >random_rotation(num_rotation);
         for(int r = 0;r<num_rotation;r++){
             vector<float> random_vec(dimension);
             for(int ii = 0; ii < dimension; ii++){
-                random_vec[ii]=(float)random_bit(gen);
+                random_vec[ii]=(float)(2*random_bit(gen)-1);
             }
-            random_rotation[r]=random_vec;
+            random_rotation[r]=move(random_vec);
         }
-        random_rotation_vec[i]=random_rotation;
+        random_rotation_vec[i]=move(random_rotation);
     }
     cout << "Setup Tables" << endl;
     for(int i = 0; i<num_table;i++){
         for(int ii = 0; ii < size; ii++){
-            for(int r = 0; r < num_rotation;r++){
-                vector<float>::const_iterator first = data.begin() + r*dimension;
-                vector<float>::const_iterator last = data.begin() + (r+1)*dimension;
-                vector<float> data_vec(first, last);
-            }
+            vector<float>::const_iterator first = data.begin() + ii*dimension;
+            vector<float>::const_iterator last = data.begin() + (ii+1)*dimension;
+            vector<float> data_vec(first, last);
+            data_vec = rotations(dimension, num_rotation, random_rotation_vec, i, data_vec);
+            vector<int> result(1);
+            crosspolytope(data_vec,k,dimension,result);
+            tables[i][result[0]%table_size] = ii;
         }
     }
     cout << "Finished Table Setup" << endl;
     cout << "Start queries" << endl;
     vector<int> cp_result(num_queries);
-    //crosspolytope(k, dimension, num_table, num_rotation, cp_result);
+    for(int i = 0; i<num_table;i++){
+        for(int ii = 0; ii < num_queries; ii++){
+            vector<float>::const_iterator first = queries.begin() + ii*dimension;
+            vector<float>::const_iterator last = queries.begin() + (ii+1)*dimension;
+            vector<float> query_vec(first, last);
+            query_vec = rotations(dimension, num_rotation, random_rotation_vec, i, query_vec);
+            vector<int> result(1);
+            crosspolytope(query_vec,k,dimension,result);
+            if(tables[i][result[0]%table_size]!=0) {
+                cp_result[ii] = tables[i][result[0] % table_size];
+                cout << ii << ", " << tables[i][result[0] % table_size]<<endl;
+            }
+        }
+    }
     cout << "Finished queries" << endl;
     int correct_nnIDs=0;
     for(int i = 0; i< num_queries;i++){
@@ -173,4 +191,15 @@ int main(){
     }
     cout << ((float)correct_nnIDs)/((float)num_queries) << "% neighbours found"<<endl;
     return 0;
+}
+
+vector<float> &
+rotations(int dimension, int num_rotation, vector<vector<vector<float>>> &random_rotation_vec, int i,
+          vector<float> &data_vec) {
+    for(int r = 0; r < num_rotation; r++){
+                vector<float> rotated_data(dimension);
+                random_rotation(data_vec, random_rotation_vec[i][r],rotated_data);
+                data_vec = rotated_data;
+            }
+    return data_vec;
 }
