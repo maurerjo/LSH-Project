@@ -10,5 +10,7 @@
 
 int locality_sensitive_hash(float *data, int dim);
 void crosspolytope(float *x, int k, int dimension, int *result, int result_size);
+void random_rotation(float *x, int x_size, float  *random_vector, float *rotated_x);
+
 
 #endif /* LSH_H_ */
