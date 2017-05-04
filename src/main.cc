@@ -15,8 +15,7 @@ int seed = 49628583;
 mt19937_64 gen(seed);
 
 
-vector<float> &
-rotations(int dimension, int num_rotation, vector<vector<vector<float>>> &random_rotation_vec, int i,
+void rotations(int dimension, int num_rotation, vector<vector<vector<float> > > &random_rotation_vec, int i,
           vector<float> &data_vec);
 
 /*generate random data
@@ -164,7 +163,7 @@ int main(){
             vector<float>::const_iterator first = data.begin() + ii*dimension;
             vector<float>::const_iterator last = data.begin() + (ii+1)*dimension;
             vector<float> data_vec(first, last);
-            data_vec = rotations(dimension, num_rotation, random_rotation_vec, i, data_vec);
+            rotations(dimension, num_rotation, random_rotation_vec, i, data_vec);
             vector<int> result(1);
             crosspolytope(data_vec,k,dimension,result);
             tables[i][result[0]%table_size] = ii;
@@ -178,7 +177,7 @@ int main(){
             vector<float>::const_iterator first = queries.begin() + ii*dimension;
             vector<float>::const_iterator last = queries.begin() + (ii+1)*dimension;
             vector<float> query_vec(first, last);
-            query_vec = rotations(dimension, num_rotation, random_rotation_vec, i, query_vec);
+            rotations(dimension, num_rotation, random_rotation_vec, i, query_vec);
             vector<int> result(1);
             crosspolytope(query_vec,k,dimension,result);
             if(tables[i][result[0]%table_size]!=0) {
@@ -198,13 +197,11 @@ int main(){
     return 0;
 }
 
-vector<float> &
-rotations(int dimension, int num_rotation, vector<vector<vector<float>>> &random_rotation_vec, int i,
+void rotations(int dimension, int num_rotation, vector<vector<vector<float> > > &random_rotation_vec, int i,
           vector<float> &data_vec) {
     for(int r = 0; r < num_rotation; r++){
-                vector<float> rotated_data(dimension);
-                random_rotation(data_vec, random_rotation_vec[i][r],rotated_data);
-                data_vec = rotated_data;
-            }
-    return data_vec;
+        vector<float> rotated_data(dimension);
+        random_rotation(data_vec, random_rotation_vec[i][r],rotated_data);
+        data_vec = rotated_data;
+    }
 }
