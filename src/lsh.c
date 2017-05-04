@@ -59,3 +59,12 @@ void random_rotation(float *x, int x_size, float  *random_vector, float *rotated
         rotated_x[i] *= random_vector[i];
     }
 }
+
+void rotations(int dimension, int num_rotation, float *random_rotation_vec, int i,
+          float *data_vec, int data_vec_size) {
+    for(int r = 0; r < num_rotation; r++){
+        float rotated_data[dimension];
+        random_rotation(data_vec, data_vec_size, &random_rotation_vec[i*num_rotation*dimension+r],rotated_data);
+        data_vec = rotated_data;
+    }
+}
