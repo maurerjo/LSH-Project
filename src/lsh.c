@@ -6,6 +6,7 @@
  */
 
 #include "lsh.h"
+#include <math.h>
 
 int locality_sensitive_hash(float *data, int dim) {
   int res = 0;
@@ -24,4 +25,17 @@ int locality_sensitive_hash(float *data, int dim) {
       }
   }
   return res;
+}
+
+void crosspolytope(float *x, int k, int dimension, int *result, int result_size) {
+  for(int i = 0; i < result_size; i++){
+      result[i]=0;
+      int cldim = (int)ceil(log2(dimension))+1;
+      for(int ii = 0; ii<k-1;ii++){
+          result[i]<<=cldim;
+          result[i]|= locality_sensitive_hash(x, dimension);
+      }
+      result[i]<<=cldim;
+      result[i]|= locality_sensitive_hash(x, dimension);
+  }
 }
