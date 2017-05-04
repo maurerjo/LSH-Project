@@ -26,14 +26,14 @@ void createData(int size, int dimension, std::vector<float> &data){
 
 	normal_distribution<float> dist_normal(0.0, 1.0);
 	for(int i = 0;i < size; i++){
-        float scalar = 0;
+    float scalar = 0;
 		for(int k = 0; k < dimension; k++){
 			data[i*dimension+k]=dist_normal(gen);
-            scalar+=data[i*dimension+k]*data[i*dimension+k];
+        scalar+=data[i*dimension+k]*data[i*dimension+k];
 		}//normalize
-        for(int k = 0; k < dimension; k++){
-            data[i*dimension+k]/=scalar;
-        }
+    for(int k = 0; k < dimension; k++){
+      data[i*dimension+k]/=scalar;
+    }
 	}
 }
 
