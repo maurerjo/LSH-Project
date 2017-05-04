@@ -26,14 +26,14 @@ void createData(int size, int dimension, std::vector<float> &data){
 
 	normal_distribution<float> dist_normal(0.0, 1.0);
 	for(int i = 0;i < size; i++){
-    float scalar = 0;
+        float scalar = 0.0;
 		for(int k = 0; k < dimension; k++){
 			data[i*dimension+k]=dist_normal(gen);
-        scalar+=data[i*dimension+k]*data[i*dimension+k];
+            scalar+=data[i*dimension+k]*data[i*dimension+k];
 		}//normalize
-    for(int k = 0; k < dimension; k++){
-      data[i*dimension+k]/=scalar;
-    }
+        for(int k = 0; k < dimension; k++){
+            data[i*dimension+k]/=sqrt(scalar);
+        }
 	}
 }
 
@@ -68,12 +68,17 @@ void findNearestNeighbours(int size, int dimension, int num_queries, vector<floa
 //the same as decodeCP of falconn, for comparability
 static int locality_sensitive_hash(vector<float> &data, int dim) {
     int res = 0;
+    /*float bla=0;
+    for(int i = 0; i<dim;i++){
+        bla +=data[i]*data[i];
+    }
+    cout << bla<<endl;*/
     float best = data[0];
     if (-data[0] > best) {
         best = -data[0];
         res = dim;
     }
-    for (int_fast64_t ii = 1; ii < dim; ++ii) {
+    for (int ii = 1; ii < dim; ++ii) {
         if (data[ii] > best) {
             best = data[ii];
             res = ii;
@@ -89,12 +94,15 @@ void crosspolytope(vector<float> &x, int k, int dimension, vector<int> &result){
     for(int i = 0; i < result.size();i++){
         result[i]=0;
         int cldim = (int)ceil(log2(dimension))+1;
+        //cout << x[0] << "r ";
         for(int ii = 0; ii<k-1;ii++){
             result[i]<<=cldim;
             result[i]|= locality_sensitive_hash(x, dimension);
+            //cout << locality_sensitive_hash(x, dimension)<<" ";
         }
         result[i]<<=cldim;
         result[i]|= locality_sensitive_hash(x, dimension);
+        //cout << locality_sensitive_hash(x, dimension)<<" ";
     }
 }
 
@@ -102,6 +110,11 @@ void random_rotation(vector<float> &x, vector<float>  &random_vector, vector<flo
     if(x.size()!=random_vector.size()||x.size()!=rotated_x.size())
         return;//TODO probably should throw error
     //find next smaller power of 2 for hadamard pseudo random rotation
+    /*float distance = 0;
+    for(int i = 0;i<x.size();i++){
+        distance += x[i]*x[i];
+    }*/
+    //cout << "distance before: "<< distance;
     int log_dim = (int)floor(log2(x.size()));
     int h_dim = 1<<log_dim;
     //hadamard scalar
@@ -109,13 +122,22 @@ void random_rotation(vector<float> &x, vector<float>  &random_vector, vector<flo
     //hadamard transform, in O(n^2), but can be done in O(n log(n)) and falconn does it that way
     for(int i = 0;i<h_dim;i++){
         for(int ii = 0; ii< h_dim; ii++){
-            rotated_x[i] += x[ii]*pow(-1,i*ii);
+            rotated_x.at(i) += x.at(ii)*pow(-1,__builtin_popcount(i&ii));
         }
         rotated_x[i]*=scalar;
     }
     for(int i = 0;i<x.size();i++){
-        rotated_x[i] *= random_vector[i];
+        rotated_x.at(i) *= random_vector.at(i);
     }
+
+    /*float distance = 0;
+    for(int i = 0;i<x.size();i++){
+        distance += rotated_x[i]*rotated_x[i];
+    }
+    for(int i = 0;i<x.size();i++){
+        rotated_x[i]/=sqrt(distance);
+    }
+    cout << "distance after: "<< distance;*/
 }
 
 int main(){
@@ -141,7 +163,7 @@ int main(){
     int k=3, num_table=10, num_rotation=3;
     //setup tables
     cout << "Create Tables" << endl;
-    int table_size = 10000;
+    int table_size = 104009;
     vector<vector<int> > tables(num_table);
     vector<vector<vector<float> > > random_rotation_vec(num_table);
     uniform_int_distribution<int> random_bit(0, 1);
@@ -164,9 +186,16 @@ int main(){
             vector<float>::const_iterator first = data.begin() + ii*dimension;
             vector<float>::const_iterator last = data.begin() + (ii+1)*dimension;
             vector<float> data_vec(first, last);
+
+            /*float distance = 0;
+            for(int k = 0; k < dimension; k++){
+                distance += data_vec[k]*data_vec[k];
+            }
+            cout << "distance setup_table: "<<distance;*/
             rotations(dimension, num_rotation, random_rotation_vec, i, data_vec);
             vector<int> result(1);
             crosspolytope(data_vec,k,dimension,result);
+            //cout << result[0]<<" ";
             tables[i][result[0]%table_size] = ii;
         }
     }
@@ -182,9 +211,8 @@ int main(){
             vector<float> query_vec(first, last);
             rotations(dimension, num_rotation, random_rotation_vec, i, query_vec);
             vector<int> result(1);
-            cout << result[0];
             crosspolytope(query_vec,k,dimension,result);
-            cout <<" "<< result[0]<<" ";
+            //cout <<" "<< result[0]<<" ";
             if(tables[i][result[0]%table_size]!=0) {
                 bool found = false;
                 for(int j = 0; j < i; j++){
@@ -221,7 +249,7 @@ int main(){
 void rotations(int dimension, int num_rotation, vector<vector<vector<float> > > &random_rotation_vec, int i,
           vector<float> &data_vec) {
     for(int r = 0; r < num_rotation; r++){
-        vector<float> rotated_data(dimension);
+        vector<float> rotated_data(dimension, 0);
         random_rotation(data_vec, random_rotation_vec[i][r],rotated_data);
         data_vec = move(rotated_data);
     }
