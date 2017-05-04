@@ -88,11 +88,12 @@ static int locality_sensitive_hash(vector<float> &data, int dim) {
 void crosspolytope(vector<float> &x, int k, int dimension, vector<int> &result){
     for(int i = 0; i < result.size();i++){
         result[i]=0;
+        int cldim = (int)ceil(log2(dimension))+1;
         for(int ii = 0; ii<k-1;ii++){
-            result[i]<<=(int)ceil(log2(dimension))+1;
+            result[i]<<=cldim;
             result[i]|= locality_sensitive_hash(x, dimension);
         }
-        result[i]<<=(int)ceil(log2(dimension))+1;
+        result[i]<<=cldim;
         result[i]|= locality_sensitive_hash(x, dimension);
     }
 }
@@ -113,7 +114,7 @@ void random_rotation(vector<float> &x, vector<float>  &random_vector, vector<flo
         rotated_x[i]*=scalar;
     }
     for(int i = 0;i<x.size();i++){
-        rotated_x[i] = x[i]*random_vector[i];
+        rotated_x[i] *= random_vector[i];
     }
 }
 
@@ -140,13 +141,13 @@ int main(){
     int k=3, num_table=10, num_rotation=3;
     //setup tables
     cout << "Create Tables" << endl;
-    int table_size = 1<<15;
+    int table_size = 10000;
     vector<vector<int> > tables(num_table);
     vector<vector<vector<float> > > random_rotation_vec(num_table);
     uniform_int_distribution<int> random_bit(0, 1);
     for(int i = 0; i < num_table;i++){
         vector<int> table(table_size);
-        tables[i]=table;
+        tables[i]=move(table);
         vector< vector<float> >random_rotation(num_rotation);
         for(int r = 0;r<num_rotation;r++){
             vector<float> random_vec(dimension);
@@ -172,17 +173,37 @@ int main(){
     cout << "Finished Table Setup" << endl;
     cout << "Start queries" << endl;
     vector<int> cp_result(num_queries);
-    for(int i = 0; i<num_table;i++){
-        for(int ii = 0; ii < num_queries; ii++){
+    for(int ii = 0; ii < num_queries; ii++){
+        vector<int> result_vote(num_table);
+        vector<int> num_votes(num_table);
+        for(int i = 0; i<num_table;i++){
             vector<float>::const_iterator first = queries.begin() + ii*dimension;
             vector<float>::const_iterator last = queries.begin() + (ii+1)*dimension;
             vector<float> query_vec(first, last);
             rotations(dimension, num_rotation, random_rotation_vec, i, query_vec);
             vector<int> result(1);
+            cout << result[0];
             crosspolytope(query_vec,k,dimension,result);
+            cout <<" "<< result[0]<<" ";
             if(tables[i][result[0]%table_size]!=0) {
-                cp_result[ii] = tables[i][result[0] % table_size];
+                bool found = false;
+                for(int j = 0; j < i; j++){
+                    if(tables[i][result[0]%table_size]==result_vote[j]){
+                        num_votes[j]++;
+                        found = true;
+                    }
+                }
+                if(!found){
+                    result_vote[i]=tables[i][result[0]%table_size];
+                }
                 cout << ii << ", " << tables[i][result[0] % table_size]<<endl;
+            }
+        }
+        int max = 0;
+        for(int i = 0; i<num_table; i++){
+            if(num_votes[i]>max){
+                cp_result[ii]=result_vote[i];
+                max = num_votes[i];
             }
         }
     }
@@ -202,6 +223,6 @@ void rotations(int dimension, int num_rotation, vector<vector<vector<float> > > 
     for(int r = 0; r < num_rotation; r++){
         vector<float> rotated_data(dimension);
         random_rotation(data_vec, random_rotation_vec[i][r],rotated_data);
-        data_vec = rotated_data;
+        data_vec = move(rotated_data);
     }
 }
