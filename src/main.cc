@@ -153,8 +153,8 @@ void random_rotation(vector<float> &x, vector<float>  &random_vector, vector<flo
 
 int main(){
     cout << "start\n";
-    int size = (1<<10);
-    int dimension = 128;
+    int size = (1<<12);
+    int dimension = 512;
     vector<float> data(size*dimension);
     cout << "create Data Set:\n"<<size<<" data points\n"<<dimension<<" dimensions\n";
     createData(size, dimension, data);
@@ -171,7 +171,7 @@ int main(){
     //cross polytope
     cout << "Cross polytope hash" << endl;
     //cross polytope parameters
-    int k=3, num_table=17, num_rotation=3;
+    int k=2, num_table=17, num_rotation=3;
     //setup tables
     cout << "Create Tables" << endl;
     int table_size = (1<<15)-1;
