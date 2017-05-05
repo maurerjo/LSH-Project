@@ -4,8 +4,11 @@ OBJS = build/lsh.o
 
 all: $(OBJS) main
 
+clean:
+	rm build/*
+
 main:
-	$(CPP) src/main.cc -std=c++11 -o build/lsh-project
+	$(CPP) src/main.cc -std=c++11 -O3 -o build/lsh-project
 	
 build/lsh.o: src/lsh.h src/lsh.c
 	$(CC) -c src/lsh.h src/lsh.c

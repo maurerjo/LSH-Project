@@ -8,11 +8,33 @@
 #include <random>
 #include <vector>
 #include <algorithm>
+#include <chrono>
 
 using namespace std;
+typedef chrono::high_resolution_clock HighResClock;
+typedef chrono::time_point<HighResClock> Time;
+typedef std::chrono::duration<double, typename HighResClock::period> Cycle;
+
  
 int seed = 49628583;
 mt19937_64 gen(seed);
+
+class Stopwatch {
+ public:
+  Stopwatch() { start = chrono::high_resolution_clock::now(); }
+  long GetElapsedTime() {
+    Time end = chrono::high_resolution_clock::now();
+    Cycle tick_diff(end - start);
+    return tick_diff.count();
+  }
+  void PrintElapsedTime() {
+    Time end = chrono::high_resolution_clock::now();
+    Cycle tick_diff(end - start);
+    cout << tick_diff.count() << " cycles";
+  }
+ private:
+  Time start;
+};
 
 
 void rotations(int dimension, int num_rotation, vector<vector<vector<vector<float> > > > &random_rotation_vec, int i,
@@ -152,6 +174,7 @@ void random_rotation(vector<float> &x, vector<float>  &random_vector, vector<flo
 }
 
 int main(){
+    Stopwatch watch;
     cout << "start\n";
     int size = (1<<12);
     int dimension = 512;
@@ -166,8 +189,9 @@ int main(){
     cout << "finished creating queries\n\n";
     vector<int> nnIDs(num_queries);
     cout << "calculate nearest neighbour via linear scan\n";
+    Stopwatch linear_scan_watch;
     findNearestNeighbours(size, dimension, num_queries, data, queries, nnIDs);
-    cout << "found nearest neighbour\n";
+    cout << "found nearest neighbour in " << (linear_scan_watch.GetElapsedTime()) << " cycles\n";
     //cross polytope
     cout << "Cross polytope hash" << endl;
     //cross polytope parameters
@@ -217,6 +241,7 @@ int main(){
     }
     cout << "Finished Table Setup" << endl;
     cout << "Start queries" << endl;
+    Stopwatch cp_query_watch;
     vector<int> cp_result(num_queries);
     int close = 0;
     for(int ii = 0; ii < num_queries; ii++){
@@ -256,7 +281,7 @@ int main(){
             }
         }
     }
-    cout << "Finished queries" << endl;
+    cout << "Finished queries in " << cp_query_watch.GetElapsedTime() << " cycles" << endl;
     int correct_nnIDs=0;
     for(int i = 0; i< num_queries;i++){
         if(cp_result[i]==nnIDs[i]){
@@ -272,6 +297,8 @@ int main(){
     cout << 100*((float)correct_nnIDs)/((float)num_queries) << "% neighbours found"<<endl;
     cout << 100*((float)close)/((float)num_queries) << "% close found"<<endl;
     cout << table_used << " table entries used"<<endl;
+    cout << "Program ran for: " << endl;
+    watch.PrintElapsedTime();
     return 0;
 }
 
