@@ -36,6 +36,19 @@ class Stopwatch {
   Time start;
 };
 
+vector<float> HMatVec;
+
+void SetHMatVec(int dim) {
+  int log_dim = (int)floor(log2(dim));
+  int h_dim = 1<<log_dim;
+  HMatVec.resize(h_dim);
+  //hadamard scalar
+  float scalar = pow(2,-(log_dim/2.0));
+  for(int i = 0; i<h_dim; i++){
+    HMatVec[i] = scalar * pow(-1,__builtin_popcount(i));
+  }
+}
+
 
 void rotations(int dimension, int num_rotation, vector<vector<vector<vector<float> > > > &random_rotation_vec, int i,
           vector<float> &data_vec, vector<vector<float> > &result, int k);
@@ -148,19 +161,23 @@ void random_rotation(vector<float> &x, vector<float>  &random_vector, vector<flo
         distance += x[i]*x[i];
     }*/
     //cout << "distance before: "<< distance;
+    if (HMatVec.size() == 0) {
+      SetHMatVec(x.size());
+    }
     int log_dim = (int)floor(log2(x.size()));
     int h_dim = 1<<log_dim;
     //hadamard scalar
-    float scalar = pow(2,-(log_dim/2.0));
+    //float scalar = pow(2,-(log_dim/2.0));
     //hadamard transform, in O(n^2), but can be done in O(n log(n)) and falconn does it that way
     for(int i = 0;i<h_dim;i++){
         for(int ii = 0; ii< h_dim; ii++){
-            rotated_x.at(i) += x.at(ii)*pow(-1,__builtin_popcount(i&ii));
+            //rotated_x.at(i) += x.at(ii)*pow(-1,__builtin_popcount(i&ii));
+            rotated_x[i] += x[ii]*HMatVec[i&ii];
         }
-        rotated_x[i]*=scalar;
+        //rotated_x[i]*=scalar;
     }
     for(int i = 0;i<x.size();i++){
-        rotated_x.at(i) *= random_vector.at(i);
+        rotated_x[i] *= random_vector[i];
     }
 
     /*float distance = 0;
@@ -176,13 +193,18 @@ void random_rotation(vector<float> &x, vector<float>  &random_vector, vector<flo
 int main(){
     Stopwatch watch;
     cout << "start\n";
+<<<<<<< HEAD
     int size = (1<<12);
     int dimension = 512;
+=======
+    int size = (1<<16);
+    int dimension = 16;
+>>>>>>> 240af106d2e8bc68264754277a8f2dc56d3e5e6f
     vector<float> data(size*dimension);
     cout << "create Data Set:\n"<<size<<" data points\n"<<dimension<<" dimensions\n";
     createData(size, dimension, data);
     cout << "finished creating data\n\n";
-    int num_queries = 100;
+    int num_queries = 1 << 12;
     vector<float> queries(num_queries*dimension);
     cout << "create "<<num_queries<<" queries\n";
     createQueries(num_queries, dimension, queries, size, data);
