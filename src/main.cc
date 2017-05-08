@@ -73,7 +73,7 @@ void createData(int size, int dimension, vector<float> &data){
 }
 
 void createQueries(int num_queries, int dimension, vector<float> &queries, int size, vector<float> &data){
-	createData(num_queries, dimension, queries);
+	//createData(num_queries, dimension, queries);
     uniform_int_distribution<int> random_number(0, size-1);
     normal_distribution<float> dist_normal(0.0, 1.0);
     for(int i = 0; i < num_queries;i++){
@@ -193,18 +193,14 @@ void random_rotation(vector<float> &x, vector<float>  &random_vector, vector<flo
 int main(){
     Stopwatch watch;
     cout << "start\n";
-<<<<<<< HEAD
-    int size = (1<<12);
-    int dimension = 512;
-=======
-    int size = (1<<16);
-    int dimension = 16;
->>>>>>> 240af106d2e8bc68264754277a8f2dc56d3e5e6f
+    const int size = (1<<16);
+    const int dimension = 1<<6;
+    const int table_size = (1<<18)-1;
+    const int num_queries = 1 << 12;
     vector<float> data(size*dimension);
     cout << "create Data Set:\n"<<size<<" data points\n"<<dimension<<" dimensions\n";
     createData(size, dimension, data);
     cout << "finished creating data\n\n";
-    int num_queries = 1 << 12;
     vector<float> queries(num_queries*dimension);
     cout << "create "<<num_queries<<" queries\n";
     createQueries(num_queries, dimension, queries, size, data);
@@ -213,14 +209,14 @@ int main(){
     cout << "calculate nearest neighbour via linear scan\n";
     Stopwatch linear_scan_watch;
     findNearestNeighbours(size, dimension, num_queries, data, queries, nnIDs);
-    cout << "found nearest neighbour in " << (linear_scan_watch.GetElapsedTime()) << " cycles\n";
+    long linear_time = linear_scan_watch.GetElapsedTime();
+    cout << "found nearest neighbour in " << linear_time << " cycles\n";
     //cross polytope
     cout << "Cross polytope hash" << endl;
     //cross polytope parameters
     int k=2, num_table=17, num_rotation=3;
     //setup tables
     cout << "Create Tables" << endl;
-    int table_size = (1<<15)-1;
     vector<vector<int> > tables(num_table);
     vector<vector<vector<vector<float> > > > random_rotation_vec(num_table);
     uniform_int_distribution<int> random_bit(0, 1);
@@ -303,7 +299,8 @@ int main(){
             }
         }
     }
-    cout << "Finished queries in " << cp_query_watch.GetElapsedTime() << " cycles" << endl;
+    long cp_time=cp_query_watch.GetElapsedTime();
+    cout << "Finished queries in " << cp_time << " cycles" << endl;
     int correct_nnIDs=0;
     for(int i = 0; i< num_queries;i++){
         if(cp_result[i]==nnIDs[i]){
@@ -318,6 +315,7 @@ int main(){
     }
     cout << 100*((float)correct_nnIDs)/((float)num_queries) << "% neighbours found"<<endl;
     cout << 100*((float)close)/((float)num_queries) << "% close found"<<endl;
+    cout << "Speed up to linear scan: " << (double)linear_time/(double)cp_time << endl;
     cout << table_used << " table entries used"<<endl;
     cout << "Program ran for: " << endl;
     watch.PrintElapsedTime();
