@@ -212,7 +212,11 @@ int main(){
     //cross polytope
     cout << "Cross polytope hash" << endl;
     //cross polytope parameters
+<<<<<<< HEAD
     int k=6, num_table=17, num_rotation=3;
+=======
+    int k=7, num_table=17, num_rotation=3;
+>>>>>>> 15eddcc5904e675036f5267b62f2a43e892bdcf6
     //setup tables
     cout << "Create Tables" << endl;
     vector<vector<int> > tables(num_table);
