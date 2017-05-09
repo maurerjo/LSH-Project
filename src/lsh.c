@@ -9,6 +9,20 @@
 #include "lsh.h"
 #include <math.h>
 
+float * HMatVec;
+int HMatVecLen = 0;
+
+void SetHMatVec(int dim) {
+  int log_dim = (int)floor(log2(dim));
+  int h_dim = 1<<log_dim;
+  HMatVec = (float *)malloc(h_dim*sizeof(float));
+  HMatVecLen = h_dim;
+  //hadamard scalar
+  float scalar = pow(2,-(log_dim/2.0));
+  for(int i = 0; i<h_dim; i++){
+    HMatVec[i] = scalar * (1 - ((_mm_popcnt_u32(i) & 0x1) << 1));
+  }
+}
 
 int locality_sensitive_hash(float *data, int dim) {
   int res = 0;
