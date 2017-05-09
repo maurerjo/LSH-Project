@@ -8,11 +8,20 @@
 #include "immintrin.h"
 #include "lsh.h"
 #include <math.h>
-//#include "immintrin.h"
-#include "nmmintrin.h"
+#include "immintrin.h"
 
 float * HMatVec;
 int HMatVecLen = 0;
+
+float * Data;
+int num_points = 0;
+int num_dimensions = 0;
+
+void SetData(float * data_pointer, int points, int dimensions) {
+  Data = data_pointer;
+  num_points = points;
+  num_dimensions = dimensions;
+}
 
 void SetHMatVec(int dim) {
   int log_dim = (int)floor(log2(dim));
@@ -64,16 +73,17 @@ void random_rotation(float *x, int x_size, float  *random_vector, float *rotated
     //if(x_size != random_vector.size()||x.size()!=rotated_x.size())
     //    return;//TODO probably should throw error
     //find next smaller power of 2 for hadamard pseudo random rotation
+
     int log_dim = (int)floor(log2(x_size));
     int h_dim = 1<<log_dim;
-    //hadamard scalar
-    float scalar = pow(2,-(log_dim/2.0));
+    if (h_dim != HMatVecLen) {
+      SetHMatVec(x_size);
+    }
     //hadamard transform, in O(n^2), but can be done in O(n log(n)) and falconn does it that way
     for(int i = 0;i<h_dim;i++){
         for(int ii = 0; ii< h_dim; ii++){
-            rotated_x[i] += x[ii]*(1 - (_mm_popcnt_u32(i&ii) & 0x1) << 1);
+          rotated_x[i] += x[ii]*HMatVec[i&ii];
         }
-        rotated_x[i]*=scalar;
     }
     for(int i = 0; i<x_size; i++){
         rotated_x[i] *= random_vector[i];
