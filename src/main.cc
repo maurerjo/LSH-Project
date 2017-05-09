@@ -191,9 +191,9 @@ void random_rotation(vector<float> &x, vector<float>  &random_vector, vector<flo
 int main(){
     Stopwatch watch;
     cout << "start\n";
-    const int size = (1<<16);
+    const int size = (1<<20);
     const int dimension = 1<<4;
-    const int table_size = (1<<18)-1;
+    const int table_size = (1<<22)-1;
     const int num_queries = 1 << 12;
     vector<float> data(size*dimension);
     cout << "create Data Set:\n"<<size<<" data points\n"<<dimension<<" dimensions\n";
@@ -212,7 +212,7 @@ int main(){
     //cross polytope
     cout << "Cross polytope hash" << endl;
     //cross polytope parameters
-    int k=3, num_table=17, num_rotation=3;
+    int k=6, num_table=17, num_rotation=3;
     //setup tables
     cout << "Create Tables" << endl;
     vector<vector<int> > tables(num_table);
