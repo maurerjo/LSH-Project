@@ -5,8 +5,10 @@
  *      Author: jonathan
  */
 
+#include "immintrin.h"
 #include "lsh.h"
 #include <math.h>
+
 
 int locality_sensitive_hash(float *data, int dim) {
   int res = 0;
@@ -51,7 +53,7 @@ void random_rotation(float *x, int x_size, float  *random_vector, float *rotated
     //hadamard transform, in O(n^2), but can be done in O(n log(n)) and falconn does it that way
     for(int i = 0;i<h_dim;i++){
         for(int ii = 0; ii< h_dim; ii++){
-            rotated_x[i] += x[ii]*pow(-1,i*ii);
+            rotated_x[i] += x[ii]*(1 - (_mm_popcnt_u32(i&ii) & 0x1) << 1);
         }
         rotated_x[i]*=scalar;
     }
