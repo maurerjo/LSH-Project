@@ -49,6 +49,8 @@ void SetHMatVec(int dim) {
   }
 }
 
+bool I_Exist = true;
+
 
 void rotations(int dimension, int num_rotation, vector<vector<vector<vector<float> > > > &random_rotation_vec, int i,
           vector<float> &data_vec, vector<vector<float> > &result, int k);
