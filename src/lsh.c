@@ -8,6 +8,8 @@
 #include "immintrin.h"
 #include "lsh.h"
 #include <math.h>
+//#include "immintrin.h"
+#include "nmmintrin.h"
 
 float * HMatVec;
 int HMatVecLen = 0;
@@ -53,6 +55,8 @@ void crosspolytope(float *x, int k, int dimension, int *result, int result_size)
       }
       result[i]<<=cldim;
       result[i]|= locality_sensitive_hash(x, dimension);
+      unsigned int a = 5;
+      a = _mm_popcnt_u32(a);
   }
 }
 
