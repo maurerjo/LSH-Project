@@ -9,6 +9,7 @@
 #include <vector>
 #include <algorithm>
 #include <chrono>
+#include "lsh.h"
 
 using namespace std;
 typedef chrono::high_resolution_clock HighResClock;
@@ -191,13 +192,14 @@ void random_rotation(vector<float> &x, vector<float>  &random_vector, vector<flo
 int main(){
     Stopwatch watch;
     cout << "start\n";
-    const int size = (1<<20);
+    const int size = (1<<15);
     const int dimension = 1<<4;
     const int table_size = (1<<22)-1;
     const int num_queries = 1 << 12;
     vector<float> data(size*dimension);
     cout << "create Data Set:\n"<<size<<" data points\n"<<dimension<<" dimensions\n";
     createData(size, dimension, data);
+    SetData(data.data(), size, dimension);
     cout << "finished creating data\n\n";
     vector<float> queries(num_queries*dimension);
     cout << "create "<<num_queries<<" queries\n";
@@ -216,6 +218,7 @@ int main(){
     //setup tables
     cout << "Create Tables" << endl;
     vector<vector<int> > tables(num_table);
+    SetTables(num_table, table_size);
     vector<vector<vector<vector<float> > > > random_rotation_vec(num_table);
     uniform_int_distribution<int> random_bit(0, 1);
     for(int i = 0; i < num_table;i++){
