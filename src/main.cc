@@ -136,15 +136,13 @@ static int locality_sensitive_hash(vector<float> &data, int dim) {
     return res;
 }
 
-void crosspolytope(vector<vector<float> > &x, int k, int dimension, vector<int> &result){
+void crosspolytope(vector<vector<float> > &x, int k, int dimension, vector<unsigned int> &result){
     for(int i = 0; i < result.size();i++){
         result[i]=0;
         int cldim = (int)ceil(log2(dimension))+1;
-        //cout << x[0] << "r ";
-        for(int ii = 0; ii<k;ii++){
+        for(int ii = 0; ii<x.size();ii++){
             result[i]<<=cldim;
             result[i]|= locality_sensitive_hash(x[ii], dimension);
-            //cout << x[ii][0]/*locality_sensitive_hash(x[ii], dimension)*/<<" ";
         }
         //result[i]<<=cldim;
         //result[i]|= locality_sensitive_hash(x, dimension);
@@ -194,7 +192,7 @@ int main(){
     Stopwatch watch;
     cout << "start\n";
     const int size = (1<<16);
-    const int dimension = 1<<6;
+    const int dimension = 1<<4;
     const int table_size = (1<<18)-1;
     const int num_queries = 1 << 12;
     vector<float> data(size*dimension);
@@ -214,7 +212,7 @@ int main(){
     //cross polytope
     cout << "Cross polytope hash" << endl;
     //cross polytope parameters
-    int k=2, num_table=17, num_rotation=3;
+    int k=3, num_table=17, num_rotation=3;
     //setup tables
     cout << "Create Tables" << endl;
     vector<vector<int> > tables(num_table);
@@ -251,9 +249,8 @@ int main(){
             cout << "distance setup_table: "<<distance;*/
             vector<vector<float> > rotations_vec = vector<vector<float> >(k);
             rotations(dimension, num_rotation, random_rotation_vec, i, data_vec, rotations_vec,k);
-            vector<int> result(1);
+            vector<unsigned int> result(1);
             crosspolytope(rotations_vec,k,dimension,result);
-            //cout << result[0]<<" ";
             tables[i][result[0]%table_size] = ii;
         }
     }
@@ -271,7 +268,7 @@ int main(){
             vector<float> query_vec(first, last);
             vector<vector<float> > rotated_query = vector<vector<float> >(k);
             rotations(dimension, num_rotation, random_rotation_vec, i, query_vec, rotated_query,k);
-            vector<int> result(1);
+            vector<unsigned int> result(1);
             crosspolytope(rotated_query,k,dimension,result);
             //cout <<" "<< result[0]<<" ";
             if(tables[i][result[0]%table_size]!=0) {
