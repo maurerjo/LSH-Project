@@ -45,7 +45,7 @@ void SetHMatVec(int dim) {
   //hadamard scalar
   float scalar = pow(2,-(log_dim/2.0));
   for(int i = 0; i<h_dim; i++){
-    HMatVec[i] = scalar * pow(-1,__builtin_popcount(i));
+    HMatVec[i] = scalar * (1 - ((__builtin_popcount(i) & 0x1) << 1));
   }
 }
 
@@ -112,7 +112,7 @@ void findNearestNeighbours(int size, int dimension, int num_queries, vector<floa
 }
 
 //the same as decodeCP of falconn, for comparability
-static int locality_sensitive_hash(vector<float> &data, int dim) {
+int locality_sensitive_hash(vector<float> &data, int dim) {
     int res = 0;
     /*float bla=0;
     for(int i = 0; i<dim;i++){
