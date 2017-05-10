@@ -200,7 +200,7 @@ int main(){
     vector<float> data(size*dimension);
     cout << "create Data Set:\n"<<size<<" data points\n"<<dimension<<" dimensions\n";
     createData(size, dimension, data);
-    //SetData(data.data(), size, dimension);
+    SetData(data.data(), size, dimension);
     cout << "finished creating data\n\n";
     vector<float> queries(num_queries*dimension);
     cout << "create "<<num_queries<<" queries\n";
@@ -219,12 +219,8 @@ int main(){
     //setup tables
     cout << "Create Tables" << endl;
     vector<vector<int> > tables(num_table);
-<<<<<<< HEAD
-    //SetTables(num_table, table_size);
-=======
     SetTables(num_table, table_size);
     SetRotationVecs(num_table, num_rotation, k, dimension);
->>>>>>> f1fd088beb879b4bc4264113f09136852df90fed
     vector<vector<vector<vector<float> > > > random_rotation_vec(num_table);
     uniform_int_distribution<int> random_bit(0, 1);
     for(int i = 0; i < num_table;i++){
