@@ -199,7 +199,7 @@ int main(){
     vector<float> data(size*dimension);
     cout << "create Data Set:\n"<<size<<" data points\n"<<dimension<<" dimensions\n";
     createData(size, dimension, data);
-    SetData(data.data(), size, dimension);
+    //SetData(data.data(), size, dimension);
     cout << "finished creating data\n\n";
     vector<float> queries(num_queries*dimension);
     cout << "create "<<num_queries<<" queries\n";
@@ -218,11 +218,11 @@ int main(){
     //setup tables
     cout << "Create Tables" << endl;
     vector<vector<int> > tables(num_table);
-    SetTables(num_table, table_size);
+    //SetTables(num_table, table_size);
     vector<vector<vector<vector<float> > > > random_rotation_vec(num_table);
     uniform_int_distribution<int> random_bit(0, 1);
     for(int i = 0; i < num_table;i++){
-        vector<int> table(table_size);
+        vector<int> table(table_size,-1);
         tables[i]=move(table);
         vector<vector< vector<float> > >random_rotation(num_rotation);
         for(int r = 0;r<num_rotation;r++){
@@ -261,10 +261,8 @@ int main(){
     cout << "Start queries" << endl;
     Stopwatch cp_query_watch;
     vector<int> cp_result(num_queries);
-    int close = 0;
     for(int ii = 0; ii < num_queries; ii++){
-        vector<int> result_vote(num_table);
-        vector<int> num_votes(num_table);
+        float min_distance = 10000.0;
         for(int i = 0; i<num_table;i++){
             vector<float>::const_iterator first = queries.begin() + ii*dimension;
             vector<float>::const_iterator last = queries.begin() + (ii+1)*dimension;
@@ -274,28 +272,20 @@ int main(){
             vector<unsigned int> result(1);
             crosspolytope(rotated_query,k,dimension,result);
             //cout <<" "<< result[0]<<" ";
-            if(tables[i][result[0]%table_size]!=0) {
-                bool found = false;
-                for(int j = 0; j < i; j++){
-                    if(tables[i][result[0]%table_size]==result_vote[j]){
-                        num_votes[j]++;
-                        found = true;
-                    }
+            int id = tables[i][result[0]%table_size];
+            if(id!=-1) {
+                float current_distance = 0;
+                vector<float>::const_iterator firstd = data.begin() + id*dimension;
+                vector<float>::const_iterator lastd = data.begin() + (id+1)*dimension;
+                vector<float> neighbor_vec(firstd, lastd);
+                for(int j = 0; j<dimension;j++){
+                    current_distance+=query_vec[j]*neighbor_vec[j];
                 }
-                if(!found){
-                    result_vote[i]=tables[i][result[0]%table_size];
-                    if(tables[i][result[0]%table_size]==nnIDs[ii]){
-                        close++;
-                    }
+                if(current_distance<min_distance){
+                    min_distance = current_distance;
+                    cp_result[ii]=id;
                 }
                 //cout << i << ", " << ii << ", " << tables[i][result[0] % table_size]<< ", " << nnIDs[ii]<<endl;
-            }
-        }
-        int max = 0;
-        for(int i = 0; i<num_table; i++){
-            if(num_votes[i]>max){
-                cp_result[ii]=result_vote[i];
-                max = num_votes[i];
             }
         }
     }
@@ -314,7 +304,6 @@ int main(){
         }
     }
     cout << 100*((float)correct_nnIDs)/((float)num_queries) << "% neighbours found"<<endl;
-    cout << 100*((float)close)/((float)num_queries) << "% close found"<<endl;
     cout << "Speed up to linear scan: " << (double)linear_time/(double)cp_time << endl;
     cout << table_used << " table entries used"<<endl;
     cout << "Program ran for: " << endl;
