@@ -190,6 +190,7 @@ void random_rotation(vector<float> &x, vector<float>  &random_vector, vector<flo
 }
 
 int main(){
+    init_rng();
     Stopwatch watch;
     cout << "start\n";
     const int size = (1<<15);
@@ -218,7 +219,12 @@ int main(){
     //setup tables
     cout << "Create Tables" << endl;
     vector<vector<int> > tables(num_table);
+<<<<<<< HEAD
     //SetTables(num_table, table_size);
+=======
+    SetTables(num_table, table_size);
+    SetRotationVecs(num_table, num_rotation, k, dimension);
+>>>>>>> f1fd088beb879b4bc4264113f09136852df90fed
     vector<vector<vector<vector<float> > > > random_rotation_vec(num_table);
     uniform_int_distribution<int> random_bit(0, 1);
     for(int i = 0; i < num_table;i++){
