@@ -7,6 +7,6 @@
 3) ???
 4) profit
 
-Done:	Random data generation
-	Random query generation
+Done:	Random data generation,
+	Random query generation,
 	Find true nearest neighbors by linear scan
