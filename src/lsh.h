@@ -15,5 +15,7 @@ void rotations(int dimension, int num_rotation, float *random_rotation_vec, int 
           float *data_vec, int data_vec_size);
 void SetData(float* data_pointer, int points, int dimensions);
 void SetTables(int num_tables, int table_size);
+void SetRotationVecs(int num_tables, int num_rotations, int k, int num_dimensions);
+void init_rng();
 
 #endif /* LSH_H_ */
