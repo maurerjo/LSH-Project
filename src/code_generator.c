@@ -34,8 +34,14 @@ void generate_fast_rotation(int n, int *rot, int num_rot){
             }
         }
     }
+    float scalar = pow(2,-r*log2(n)/2.0);
+    for(int i = 0;i<n;i++){
+        for(int ii = 0;ii<n;ii++){
+            result[i*n+ii]*=scalar;//rescale to be distance preserving
+        }
+    }
     fwrite(result, sizeof(float),n*n,f2);//for debugging
     if(avx){
-        
+
     }
 }
