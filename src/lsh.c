@@ -104,30 +104,26 @@ int locality_sensitive_hash(float *data, int dim) {
   return res;
 }
 
-void crosspolytope(float *x, int k, int dimension, int *result, int result_size) {
+void crosspolytope(float *x, int *result, int result_size) {
   for(int i = 0; i < result_size; i++){
-      result[i]=0;
-      int cldim = (int)ceil(log2(dimension))+1;
-      for(int ii = 0; ii<k-1;ii++){
-          result[i]<<=cldim;
-          result[i]|= locality_sensitive_hash(x, dimension);
-      }
-      result[i]<<=cldim;
-      result[i]|= locality_sensitive_hash(x, dimension);
-      unsigned int a = 5;
-      a = _mm_popcnt_u32(a);
+    result[i]=0;
+    int cldim = (int)ceil(log2(num_dimensions))+1;
+    for(int ii = 0; ii<k;ii++){
+        result[i]<<=cldim;
+        result[i]|= locality_sensitive_hash(x[ii], num_dimensions);
+    }
   }
 }
 
-void random_rotation(float *x, int x_size, float  *random_vector, float *rotated_x) {
+void random_rotation(float *x, int table_idx, int hash_rotation_idx, int rotation_idx, float *rotated_x) {
     //if(x_size != random_vector.size()||x.size()!=rotated_x.size())
     //    return;//TODO probably should throw error
     //find next smaller power of 2 for hadamard pseudo random rotation
 
-    int log_dim = (int)floor(log2(x_size));
+    int log_dim = (int)floor(log2(num_dimensions));
     int h_dim = 1<<log_dim;
     if (h_dim != HMatVecLen) {
-      SetHMatVecC(x_size);
+      SetHMatVecC(num_dimensions);
     }
     //hadamard transform, in O(n^2), but can be done in O(n log(n)) and falconn does it that way
     for(int i = 0;i<h_dim;i++){
@@ -135,7 +131,10 @@ void random_rotation(float *x, int x_size, float  *random_vector, float *rotated
           rotated_x[i] += x[ii]*HMatVecC[i&ii];
         }
     }
-    for(int i = 0; i<x_size; i++){
+    float *random_vector = &rotation_vecs[table_idx * k * num_rotations * num_dimensions
+                                         + hash_rotation_idx * num_rotations * num_dimensions
+                                         + rotation_idx * num_dimensions];
+    for(int i = 0; i < num_dimensions; i++){
         rotated_x[i] *= random_vector[i];
     }
 }
@@ -152,14 +151,20 @@ void random_rotation(float *x, int x_size, float  *random_vector, float *rotated
     }
 }*/
 
-void rotations(int dimension, int num_rotation, float *random_rotation_vec, int i,
-          float *data_vec, int data_vec_size) {
+void rotations(int table_idx, int data_point_idx, float *result_vec) {
+  float rotated_data[num_dimensions];
   for(int j = 0;j<k;j++) {
-    for(int r = 0; r < num_rotation; r++){
-        float rotated_data[dimension];
-        random_rotation(data_vec, data_vec_size, &random_rotation_vec[i*num_rotation*dimension+r],rotated_data);
-        for (int i = 0; i < data_vec_size; i++);
-        data_vec = rotated_data;
+    for (int dim = 0; dim < num_dimensions; dim++) {
+      result_vec[j*num_dimensions + dim] = Data[data_point_idx * num_dimensions + dim];
+    }
+    for(int r = 0; r < num_rotations; r++){
+        for (int dim = 0; dim < num_dimensions; dim++) {
+          rotated_data[dim] = result_vec[j*num_dimensions + dim];
+        }
+        random_rotation(rotated_data, table_idx, j, r,
+                        &result_vec[j*num_dimensions]);
+        //for (int i = 0; i < data_vec_size; i++);
+        //data_vec = rotated_data;
     }
   }
 }
