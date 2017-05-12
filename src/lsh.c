@@ -36,6 +36,8 @@ void init_rng() {
   rng.inc = 1337;
 }
 
+const int kUndefined = -1;
+
 float * HMatVecC;
 int HMatVecLen = 0;
 
@@ -61,6 +63,9 @@ void SetTables(int num_tables_, int table_size_) {
   num_tables = num_tables_;
   table_size = table_size_;
   tables = (int *)malloc(num_tables*table_size*sizeof(int));
+  for (int idx = 0; idx < num_tables * table_size; idx++) {
+    tables[idx] = kUndefined;
+  }
 }
 
 void SetRotationVecs(int num_tables_, int num_rotations_, int k_, int num_dimensions_) {
@@ -83,6 +88,14 @@ void SetHMatVecC(int dim) {
   for(int i = 0; i<h_dim; i++){
     HMatVecC[i] = scalar * (1 - ((_mm_popcnt_u32(i) & 0x1) << 1));
   }
+}
+
+void set_table_entry(int table_idx, int hash, int entry_idx) {
+  tables[table_idx * table_size + (hash%table_size)] = entry_idx;
+}
+
+int get_neighbor(int table_idx, int hash) {
+  return tables[table_idx * table_size + (hash%table_size)];
 }
 
 int locality_sensitive_hash(float *data, int dim) {
@@ -110,7 +123,7 @@ void crosspolytope(float *x, int *result, int result_size) {
     int cldim = (int)ceil(log2(num_dimensions))+1;
     for(int ii = 0; ii<k;ii++){
         result[i]<<=cldim;
-        result[i]|= locality_sensitive_hash(x[ii], num_dimensions);
+        result[i]|= locality_sensitive_hash(&x[ii * num_dimensions], num_dimensions);
     }
   }
 }
@@ -151,11 +164,11 @@ void random_rotation(float *x, int table_idx, int hash_rotation_idx, int rotatio
     }
 }*/
 
-void rotations(int table_idx, int data_point_idx, float *result_vec) {
+void rotations(int table_idx, float *data_point, float *result_vec) {
   float rotated_data[num_dimensions];
   for(int j = 0;j<k;j++) {
     for (int dim = 0; dim < num_dimensions; dim++) {
-      result_vec[j*num_dimensions + dim] = Data[data_point_idx * num_dimensions + dim];
+      result_vec[j*num_dimensions + dim] = data_point[dim];
     }
     for(int r = 0; r < num_rotations; r++){
         for (int dim = 0; dim < num_dimensions; dim++) {
