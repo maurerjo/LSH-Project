@@ -255,9 +255,14 @@ int main(){
             cout << "distance setup_table: "<<distance;*/
             vector<vector<float> > rotations_vec = vector<vector<float> >(k);
             rotations(dimension, num_rotation, random_rotation_vec, i, data_vec, rotations_vec,k);
+            float rotations_vec_c[k*dimension];
+            rotations(i, &data[ii*dimension], rotations_vec_c);
             vector<unsigned int> result(1);
             crosspolytope(rotations_vec,k,dimension,result);
+            int result_c = 0;
+            crosspolytope(rotations_vec_c, &result_c, 1);
             tables[i][result[0]%table_size] = ii;
+            set_table_entry(i, result_c, ii);
         }
     }
     cout << "Finished Table Setup" << endl;
@@ -265,15 +270,24 @@ int main(){
     Stopwatch cp_query_watch;
     vector<int> cp_result(num_queries);
     for(int ii = 0; ii < num_queries; ii++){
-        float min_distance = -10000.0;
+        float min_distance = 10000.0;
+        float min_c_distance = 10000.0;
         for(int i = 0; i<num_table;i++){
             vector<float>::const_iterator first = queries.begin() + ii*dimension;
             vector<float>::const_iterator last = queries.begin() + (ii+1)*dimension;
             vector<float> query_vec(first, last);
             vector<vector<float> > rotated_query = vector<vector<float> >(k);
             rotations(dimension, num_rotation, random_rotation_vec, i, query_vec, rotated_query,k);
+
+            float rotations_vec_c[k*dimension];
+            rotations(i, &queries[ii*dimension], rotations_vec_c);
+
             vector<unsigned int> result(1);
             crosspolytope(rotated_query,k,dimension,result);
+
+            int result_c = 0;
+            crosspolytope(rotations_vec_c, &result_c, 1);
+
             //cout <<" "<< result[0]<<" ";
             int id = tables[i][result[0]%table_size];
             if(id!=-1) {
@@ -290,6 +304,8 @@ int main(){
                 }
                 //cout << i << ", " << ii << ", " << tables[i][result[0] % table_size]<< ", " << nnIDs[ii]<<endl;
             }
+
+            int id_c = get_neighbor(i, result_c);
         }
     }
     long cp_time=cp_query_watch.GetElapsedTime();
