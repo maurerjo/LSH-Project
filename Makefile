@@ -12,3 +12,6 @@ main:
 	
 build/lsh.o: src/lsh.h src/lsh.c
 	$(CC) -march=native -c src/lsh.h src/lsh.c
+
+build/code_generator.o: src/code_generator.h src/code_generator.c
+	$(CC) -march=native -c src/code_generator.h src/code_generator.c

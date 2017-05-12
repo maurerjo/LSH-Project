@@ -265,7 +265,7 @@ int main(){
     Stopwatch cp_query_watch;
     vector<int> cp_result(num_queries);
     for(int ii = 0; ii < num_queries; ii++){
-        float min_distance = 10000.0;
+        float min_distance = -10000.0;
         for(int i = 0; i<num_table;i++){
             vector<float>::const_iterator first = queries.begin() + ii*dimension;
             vector<float>::const_iterator last = queries.begin() + (ii+1)*dimension;
@@ -284,7 +284,7 @@ int main(){
                 for(int j = 0; j<dimension;j++){
                     current_distance+=query_vec[j]*neighbor_vec[j];
                 }
-                if(current_distance<min_distance){
+                if(current_distance>min_distance){
                     min_distance = current_distance;
                     cp_result[ii]=id;
                 }
