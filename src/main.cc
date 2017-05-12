@@ -142,7 +142,8 @@ void crosspolytope(vector<vector<float> > &x, int k, int dimension, vector<unsig
         result[i]=0;
         int cldim = (int)ceil(log2(dimension))+1;
         for(int ii = 0; ii<x.size();ii++){
-            result[i]<<=cldim;
+            result[i]<<=cldim;//without wrap around
+            //result[i]=(result[i] << cldim) | (result[i] >> (32 - cldim));//wrap around, should improve accuracy
             result[i]|= locality_sensitive_hash(x[ii], dimension);
         }
         //result[i]<<=cldim;
@@ -194,8 +195,8 @@ int main(){
     Stopwatch watch;
     cout << "start\n";
     const int size = (1<<15);
-    const int dimension = 1<<4;
-    const int table_size = (1<<22)-1;
+    const int dimension = 1<<5;
+    const int table_size = (1<<28)-104009;
     const int num_queries = 1 << 12;
     vector<float> data(size*dimension);
     cout << "create Data Set:\n"<<size<<" data points\n"<<dimension<<" dimensions\n";
@@ -215,7 +216,7 @@ int main(){
     //cross polytope
     cout << "Cross polytope hash" << endl;
     //cross polytope parameters
-    int k=6, num_table=17, num_rotation=3;
+    int k=5, num_table=17, num_rotation=3;
     //setup tables
     cout << "Create Tables" << endl;
     vector<vector<int> > tables(num_table);
@@ -301,7 +302,7 @@ int main(){
     }
     int table_used=0;
     for(int i = 0; i < table_size;i++){
-        if(tables[0][i]!=0){
+        if(tables[0][i]!=-1){
             table_used++;
         }
     }
