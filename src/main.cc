@@ -195,8 +195,8 @@ int main(){
     Stopwatch watch;
     cout << "start\n";
     const int size = (1<<15);
-    const int dimension = 1<<5;
-    const int table_size = (1<<28)-104009;
+    const int dimension = 1<<4;
+    const int table_size = (1<<26)-104009;
     const int num_queries = 1 << 12;
     vector<float> data(size*dimension);
     cout << "create Data Set:\n"<<size<<" data points\n"<<dimension<<" dimensions\n";
@@ -241,6 +241,15 @@ int main(){
         }
         random_rotation_vec[i]=move(random_rotation);
     }
+    for (int table_idx = 0; table_idx < num_table; table_idx++) {
+      for (int rotation_idx = 0; rotation_idx < num_rotation; rotation_idx++) {
+        for (int j = 0; j < k; j++) {
+          for (int dim = 0; dim < dimension; dim++) {
+            set_rotation_vec_entry(table_idx, j, rotation_idx, dim, random_rotation_vec[table_idx][rotation_idx][j][dim]);
+          }
+        }
+      }
+    }
     cout << "Setup Tables" << endl;
     for(int i = 0; i<num_table;i++){
         for(int ii = 0; ii < size; ii++){
@@ -259,19 +268,24 @@ int main(){
             rotations(i, &data[ii*dimension], rotations_vec_c);
             vector<unsigned int> result(1);
             crosspolytope(rotations_vec,k,dimension,result);
-            int result_c = 0;
+            unsigned int result_c = 0;
             crosspolytope(rotations_vec_c, &result_c, 1);
             tables[i][result[0]%table_size] = ii;
+            //cout << "set_table_entry(" << i << ", " << result_c << ", " << ii << "); " << (i*table_size + (result_c % table_size)) << endl;
             set_table_entry(i, result_c, ii);
+            //cout << "Successfully Set" << endl;
         }
     }
     cout << "Finished Table Setup" << endl;
     cout << "Start queries" << endl;
     Stopwatch cp_query_watch;
     vector<int> cp_result(num_queries);
+    vector<int> cp_c_result(num_queries);
+    int queries_found = 0;
     for(int ii = 0; ii < num_queries; ii++){
-        float min_distance = 10000.0;
-        float min_c_distance = 10000.0;
+        float min_distance = -1000000.0;
+        float min_c_distance = -1000000.0;
+        bool found_correct = false;
         for(int i = 0; i<num_table;i++){
             vector<float>::const_iterator first = queries.begin() + ii*dimension;
             vector<float>::const_iterator last = queries.begin() + (ii+1)*dimension;
@@ -285,7 +299,7 @@ int main(){
             vector<unsigned int> result(1);
             crosspolytope(rotated_query,k,dimension,result);
 
-            int result_c = 0;
+            unsigned int result_c = 0;
             crosspolytope(rotations_vec_c, &result_c, 1);
 
             //cout <<" "<< result[0]<<" ";
@@ -298,14 +312,34 @@ int main(){
                 for(int j = 0; j<dimension;j++){
                     current_distance+=query_vec[j]*neighbor_vec[j];
                 }
-                if(current_distance<min_distance){
+                if(current_distance>min_distance){
                     min_distance = current_distance;
                     cp_result[ii]=id;
                 }
                 //cout << i << ", " << ii << ", " << tables[i][result[0] % table_size]<< ", " << nnIDs[ii]<<endl;
             }
-
             int id_c = get_neighbor(i, result_c);
+            //cout << result_c << ", " << id_c << ", " << nnIDs[ii] <<endl;
+            if (id_c == nnIDs[ii]) {
+              found_correct = true;
+            }
+            if(id_c!=-1) {
+                float current_distance = 0;
+                vector<float>::const_iterator firstd = data.begin() + id_c*dimension;
+                vector<float>::const_iterator lastd = data.begin() + (id_c+1)*dimension;
+                vector<float> neighbor_vec(firstd, lastd);
+                for(int j = 0; j<dimension;j++){
+                    current_distance+=query_vec[j]*neighbor_vec[j];
+                }
+                if(current_distance>min_c_distance){
+                    min_c_distance = current_distance;
+                    cp_c_result[ii]=id_c;
+                }
+                //cout << i << ", " << ii << ", " << tables[i][result[0] % table_size]<< ", " << nnIDs[ii]<<endl;
+            }
+        }
+        if (found_correct) {
+          queries_found++;
         }
     }
     long cp_time=cp_query_watch.GetElapsedTime();
@@ -316,6 +350,12 @@ int main(){
             correct_nnIDs++;
         }
     }
+    int correct_nnIDs_c=0;
+    for(int i = 0; i< num_queries;i++){
+        if(cp_c_result[i]==nnIDs[i]){
+            correct_nnIDs_c++;
+        }
+    }
     int table_used=0;
     for(int i = 0; i < table_size;i++){
         if(tables[0][i]!=-1){
@@ -323,6 +363,8 @@ int main(){
         }
     }
     cout << 100*((float)correct_nnIDs)/((float)num_queries) << "% neighbours found"<<endl;
+    cout << 100*((float)correct_nnIDs_c)/((float)num_queries) << "% neighbours found in C"<<endl;
+    cout << 100*((float)queries_found)/((float)num_queries) << "% neighbours actually found in C"<<endl;
     cout << "Speed up to linear scan: " << (double)linear_time/(double)cp_time << endl;
     cout << table_used << " table entries used"<<endl;
     cout << "Program ran for: " << endl;

@@ -78,6 +78,13 @@ void SetRotationVecs(int num_tables_, int num_rotations_, int k_, int num_dimens
   }
 }
 
+void set_rotation_vec_entry(int table_idx, int hash_rotation_idx, int rotation_idx, int dim_idx, float value) {
+  rotation_vecs[table_idx * k * num_rotations * num_dimensions
+                + hash_rotation_idx * num_rotations * num_dimensions
+                + rotation_idx * num_dimensions
+                + dim_idx] = value;
+}
+
 void SetHMatVecC(int dim) {
   int log_dim = (int)floor(log2(dim));
   int h_dim = 1<<log_dim;
@@ -90,7 +97,7 @@ void SetHMatVecC(int dim) {
   }
 }
 
-void set_table_entry(int table_idx, int hash, int entry_idx) {
+void set_table_entry(int table_idx, unsigned int hash, int entry_idx) {
   tables[table_idx * table_size + (hash%table_size)] = entry_idx;
 }
 
@@ -117,7 +124,7 @@ int locality_sensitive_hash(float *data, int dim) {
   return res;
 }
 
-void crosspolytope(float *x, int *result, int result_size) {
+void crosspolytope(float *x, unsigned int *result, int result_size) {
   for(int i = 0; i < result_size; i++){
     result[i]=0;
     int cldim = (int)ceil(log2(num_dimensions))+1;
