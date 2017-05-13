@@ -274,27 +274,18 @@ int main(){
     cout << "Start queries" << endl;
     Stopwatch cp_query_watch;
     vector<int> cp_result(num_queries);
-    vector<int> cp_c_result(num_queries);
-    int queries_found = 0;
     for(int ii = 0; ii < num_queries; ii++){
         float min_distance = -1000000.0;
-        float min_c_distance = -1000000.0;
-        bool found_correct = false;
         for(int i = 0; i<num_table;i++){
             vector<float>::const_iterator first = queries.begin() + ii*dimension;
             vector<float>::const_iterator last = queries.begin() + (ii+1)*dimension;
             vector<float> query_vec(first, last);
+
             vector<vector<float> > rotated_query = vector<vector<float> >(k);
             rotations(dimension, num_rotation, random_rotation_vec, i, query_vec, rotated_query,k);
 
-            float rotations_vec_c[k*dimension];
-            rotations(i, &queries[ii*dimension], rotations_vec_c);
-
             vector<unsigned int> result(1);
             crosspolytope(rotated_query,k,dimension,result);
-
-            unsigned int result_c = 0;
-            crosspolytope(rotations_vec_c, &result_c, 1);
 
             //cout <<" "<< result[0]<<" ";
             int id = tables[i][result[0]%table_size];
@@ -312,6 +303,27 @@ int main(){
                 }
                 //cout << i << ", " << ii << ", " << tables[i][result[0] % table_size]<< ", " << nnIDs[ii]<<endl;
             }
+        }
+    }
+    long cp_time=cp_query_watch.GetElapsedTime();
+    cout << "Finished queries in " << cp_time << " cycles" << endl;
+
+    cout << "Start C queries" << endl;
+    Stopwatch cp_c_query_watch;
+    vector<int> cp_c_result(num_queries);
+    int queries_found = 0;
+    for(int ii = 0; ii < num_queries; ii++){
+        float min_distance = -1000000.0;
+        float min_c_distance = -1000000.0;
+        bool found_correct = false;
+        for(int i = 0; i<num_table;i++){
+            float rotations_vec_c[k*dimension];
+            rotations(i, &queries[ii*dimension], rotations_vec_c);
+
+            unsigned int result_c = 0;
+            crosspolytope(rotations_vec_c, &result_c, 1);
+
+            //cout <<" "<< result[0]<<" ";
             int id_c = get_neighbor(i, result_c);
             //cout << result_c << ", " << id_c << ", " << nnIDs[ii] <<endl;
             if (id_c == nnIDs[ii]) {
@@ -323,7 +335,7 @@ int main(){
                 vector<float>::const_iterator lastd = data.begin() + (id_c+1)*dimension;
                 vector<float> neighbor_vec(firstd, lastd);
                 for(int j = 0; j<dimension;j++){
-                    current_distance+=query_vec[j]*neighbor_vec[j];
+                    current_distance+=queries[ii*dimension + j]*neighbor_vec[j];
                 }
                 if(current_distance>min_c_distance){
                     min_c_distance = current_distance;
@@ -336,8 +348,9 @@ int main(){
           queries_found++;
         }
     }
-    long cp_time=cp_query_watch.GetElapsedTime();
-    cout << "Finished queries in " << cp_time << " cycles" << endl;
+    long cp_c_time=cp_c_query_watch.GetElapsedTime();
+    cout << "Finished C queries in " << cp_c_time << " cycles" << endl;
+
     int correct_nnIDs=0;
     for(int i = 0; i< num_queries;i++){
         if(cp_result[i]==nnIDs[i]){
