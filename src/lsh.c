@@ -7,6 +7,7 @@
 
 #include "immintrin.h"
 #include "lsh.h"
+#include <stdio.h>
 #include <stdint.h>
 #include <math.h>
 
@@ -78,6 +79,13 @@ void SetRotationVecs(int num_tables_, int num_rotations_, int k_, int num_dimens
   }
 }
 
+void set_rotation_vec_entry(int table_idx, int hash_rotation_idx, int rotation_idx, int dim_idx, float value) {
+  rotation_vecs[table_idx * k * num_rotations * num_dimensions
+                + hash_rotation_idx * num_rotations * num_dimensions
+                + rotation_idx * num_dimensions
+                + dim_idx] = value;
+}
+
 void SetHMatVecC(int dim) {
   int log_dim = (int)floor(log2(dim));
   int h_dim = 1<<log_dim;
@@ -90,7 +98,7 @@ void SetHMatVecC(int dim) {
   }
 }
 
-void set_table_entry(int table_idx, int hash, int entry_idx) {
+void set_table_entry(int table_idx, unsigned int hash, int entry_idx) {
   tables[table_idx * table_size + (hash%table_size)] = entry_idx;
 }
 
@@ -117,7 +125,7 @@ int locality_sensitive_hash(float *data, int dim) {
   return res;
 }
 
-void crosspolytope(float *x, int *result, int result_size) {
+void crosspolytope(float *x, unsigned int *result, int result_size) {
   for(int i = 0; i < result_size; i++){
     result[i]=0;
     int cldim = (int)ceil(log2(num_dimensions))+1;
@@ -152,18 +160,6 @@ void random_rotation(float *x, int table_idx, int hash_rotation_idx, int rotatio
     }
 }
 
-/*void rotations(int dimension, int num_rotation, vector<vector<vector<vector<float> > > > &random_rotation_vec, int i,
-          vector<float> &data_vec, vector<vector<float> > &result, int k) {
-    for(int j = 0;j<k;j++) {
-        result[j].assign(data_vec.begin(),data_vec.begin()+data_vec.size());
-        for (int r = 0; r < num_rotation; r++) {
-            vector<float> rotated_data(dimension, 0);
-            random_rotation(result[j], random_rotation_vec[i][r][j], rotated_data);
-            result[j] = move(rotated_data);
-        }
-    }
-}*/
-
 void rotations(int table_idx, float *data_point, float *result_vec) {
   float rotated_data[num_dimensions];
   for(int j = 0;j<k;j++) {
@@ -173,11 +169,10 @@ void rotations(int table_idx, float *data_point, float *result_vec) {
     for(int r = 0; r < num_rotations; r++){
         for (int dim = 0; dim < num_dimensions; dim++) {
           rotated_data[dim] = result_vec[j*num_dimensions + dim];
+          result_vec[j*num_dimensions + dim] = 0;
         }
         random_rotation(rotated_data, table_idx, j, r,
                         &result_vec[j*num_dimensions]);
-        //for (int i = 0; i < data_vec_size; i++);
-        //data_vec = rotated_data;
     }
   }
 }
