@@ -256,7 +256,10 @@ int main(){
             vector<float>::const_iterator first = data.begin() + ii*dimension;
             vector<float>::const_iterator last = data.begin() + (ii+1)*dimension;
             vector<float> data_vec(first, last);
-
+            //for (int dim = 0; dim < dimension; dim++) {
+            //  cout << data_vec[dim] << ", ";
+            //}
+            //cout << endl;
             /*float distance = 0;
             for(int k = 0; k < dimension; k++){
                 distance += data_vec[k]*data_vec[k];
@@ -265,7 +268,17 @@ int main(){
             vector<vector<float> > rotations_vec = vector<vector<float> >(k);
             rotations(dimension, num_rotation, random_rotation_vec, i, data_vec, rotations_vec,k);
             float rotations_vec_c[k*dimension];
+            //for (int dim = 0; dim < dimension; dim++) {
+            //  cout << data[ii*dimension + dim] << ", ";
+            //}
+            //cout << endl;
             rotations(i, &data[ii*dimension], rotations_vec_c);
+            //for (int dim = 0; dim < dimension; dim++) {
+            //  cout << data[ii*dimension + dim] << ", ";
+            //}
+            //cout << endl;
+            //cout << (rotations_vec[0][0]) << " == " << (rotations_vec_c[0]) << endl;
+            //return 0;
             vector<unsigned int> result(1);
             crosspolytope(rotations_vec,k,dimension,result);
             unsigned int result_c = 0;

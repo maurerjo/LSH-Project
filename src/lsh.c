@@ -7,6 +7,7 @@
 
 #include "immintrin.h"
 #include "lsh.h"
+#include <stdio.h>
 #include <stdint.h>
 #include <math.h>
 
@@ -180,7 +181,10 @@ void rotations(int table_idx, float *data_point, float *result_vec) {
     for(int r = 0; r < num_rotations; r++){
         for (int dim = 0; dim < num_dimensions; dim++) {
           rotated_data[dim] = result_vec[j*num_dimensions + dim];
+          result_vec[j*num_dimensions + dim] = 0;
+          //printf("%f, ", rotated_data[dim]);
         }
+        //printf("\n");
         random_rotation(rotated_data, table_idx, j, r,
                         &result_vec[j*num_dimensions]);
         //for (int i = 0; i < data_vec_size; i++);
