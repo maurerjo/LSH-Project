@@ -141,7 +141,7 @@ void crosspolytope(vector<vector<float> > &x, int k, int dimension, vector<unsig
     for(int i = 0; i < result.size();i++){
         result[i]=0;
         int cldim = (int)ceil(log2(dimension))+1;
-        for(int ii = 0; ii<x.size();ii++){
+        for(int ii = 0; ii<k;ii++){
             result[i]<<=cldim;//without wrap around
             //result[i]=(result[i] << cldim) | (result[i] >> (32 - cldim));//wrap around, should improve accuracy
             result[i]|= locality_sensitive_hash(x[ii], dimension);
@@ -270,7 +270,7 @@ int main(){
     Stopwatch cp_query_watch;
     vector<int> cp_result(num_queries);
     for(int ii = 0; ii < num_queries; ii++){
-        float min_distance = 10000.0;
+        float min_distance = -10000.0;
         float min_c_distance = 10000.0;
         for(int i = 0; i<num_table;i++){
             vector<float>::const_iterator first = queries.begin() + ii*dimension;
