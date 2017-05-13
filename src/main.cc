@@ -350,6 +350,7 @@ int main(){
     }
     long cp_c_time=cp_c_query_watch.GetElapsedTime();
     cout << "Finished C queries in " << cp_c_time << " cycles" << endl;
+    cout << "N * D * D = " << (num_queries * dimension * dimension) << endl;
 
     int correct_nnIDs=0;
     for(int i = 0; i< num_queries;i++){
