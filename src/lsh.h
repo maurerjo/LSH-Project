@@ -20,4 +20,7 @@ void SetRotationVecs(int num_tables, int num_rotations, int k, int num_dimension
 void set_rotation_vec_entry(int table_idx, int hash_rotation_idx, int rotation_idx_, int dim_idx, float value);
 void init_rng();
 
+void setup_tables();
+void run_queries(float * queries, int num_queries, int * result);
+
 #endif /* LSH_H_ */

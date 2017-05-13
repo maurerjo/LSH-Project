@@ -195,7 +195,7 @@ int main(){
     Stopwatch watch;
     cout << "start\n";
     const int size = (1<<15);
-    const int dimension = 1<<4;
+    const int dimension = 1<<6;
     const int table_size = (1<<26)-104009;
     const int num_queries = 1 << 12;
     vector<float> data(size*dimension);
@@ -350,6 +350,7 @@ int main(){
     }
     long cp_c_time=cp_c_query_watch.GetElapsedTime();
     cout << "Finished C queries in " << cp_c_time << " cycles" << endl;
+    cout << "N * D * D = " << (num_queries * dimension * dimension) << endl;
 
     int correct_nnIDs=0;
     for(int i = 0; i< num_queries;i++){
