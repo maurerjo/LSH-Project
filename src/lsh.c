@@ -160,18 +160,6 @@ void random_rotation(float *x, int table_idx, int hash_rotation_idx, int rotatio
     }
 }
 
-/*void rotations(int dimension, int num_rotation, vector<vector<vector<vector<float> > > > &random_rotation_vec, int i,
-          vector<float> &data_vec, vector<vector<float> > &result, int k) {
-    for(int j = 0;j<k;j++) {
-        result[j].assign(data_vec.begin(),data_vec.begin()+data_vec.size());
-        for (int r = 0; r < num_rotation; r++) {
-            vector<float> rotated_data(dimension, 0);
-            random_rotation(result[j], random_rotation_vec[i][r][j], rotated_data);
-            result[j] = move(rotated_data);
-        }
-    }
-}*/
-
 void rotations(int table_idx, float *data_point, float *result_vec) {
   float rotated_data[num_dimensions];
   for(int j = 0;j<k;j++) {
@@ -182,13 +170,9 @@ void rotations(int table_idx, float *data_point, float *result_vec) {
         for (int dim = 0; dim < num_dimensions; dim++) {
           rotated_data[dim] = result_vec[j*num_dimensions + dim];
           result_vec[j*num_dimensions + dim] = 0;
-          //printf("%f, ", rotated_data[dim]);
         }
-        //printf("\n");
         random_rotation(rotated_data, table_idx, j, r,
                         &result_vec[j*num_dimensions]);
-        //for (int i = 0; i < data_vec_size; i++);
-        //data_vec = rotated_data;
     }
   }
 }
