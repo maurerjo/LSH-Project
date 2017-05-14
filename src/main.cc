@@ -241,6 +241,7 @@ int main(){
         }
         random_rotation_vec[i]=move(random_rotation);
     }
+    //Set rotation vecs to be the same in C++ and C
     for (int table_idx = 0; table_idx < num_table; table_idx++) {
       for (int rotation_idx = 0; rotation_idx < num_rotation; rotation_idx++) {
         for (int j = 0; j < k; j++) {
@@ -260,6 +261,8 @@ int main(){
             rotations(dimension, num_rotation, random_rotation_vec, i, data_vec, rotations_vec,k);
             float rotations_vec_c[k*dimension];
             rotations(i, &data[ii*dimension], rotations_vec_c);
+            //Uncomment to ensure table setup is identical (requires setting rotation vecs to be the same)
+            //cout << rotations_vec_c[0] << " == " << rotations_vec[0][0] << endl;
             vector<unsigned int> result(1);
             crosspolytope(rotations_vec,k,dimension,result);
             unsigned int result_c = 0;
