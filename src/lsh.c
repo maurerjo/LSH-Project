@@ -102,7 +102,7 @@ void set_table_entry(int table_idx, unsigned int hash, int entry_idx) {
   tables[table_idx * table_size + (hash%table_size)] = entry_idx;
 }
 
-int get_neighbor(int table_idx, int hash) {
+int get_neighbor(int table_idx, unsigned int hash) {
   return tables[table_idx * table_size + (hash%table_size)];
 }
 

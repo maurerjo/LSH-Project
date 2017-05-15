@@ -195,7 +195,7 @@ int main(){
     Stopwatch watch;
     cout << "start\n";
     const int size = (1<<15);
-    const int dimension = 1<<6;
+    const int dimension = 1<<7;
     const int table_size = (1<<26)-104009;
     const int num_queries = 1 << 12;
     vector<float> data(size*dimension);
