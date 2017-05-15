@@ -127,11 +127,14 @@ void precomputeRotation(){
     for(int table_idx = 0; table_idx<num_tables;table_idx++){
         for(int hash_rotation_idx = 0; hash_rotation_idx<k;hash_rotation_idx++){
 
-            //initialize rotation_vec to hadamard
+            //initialize rotation_vec to 0
             for(int i = 0; i < h_dim*h_dim;i++){
-                RotMat[(table_idx*k+hash_rotation_idx)*h_dim*h_dim+i]=HMatC[i];
+                RotMat[(table_idx*k+hash_rotation_idx)*h_dim*h_dim+i]=0;
             }
-            for(int rotation_idx = 0; rotation_idx<num_rotations-1;rotation_idx++){
+            for(int i = 0; i < h_dim;i++){
+                RotMat[(table_idx*k+hash_rotation_idx)*h_dim*h_dim+i*h_dim+i]=1;
+            }
+            for(int rotation_idx = 0; rotation_idx<num_rotations;rotation_idx++){
                 for(int i = 0; i<h_dim;i++){
                     for(int ii = 0; ii<h_dim;ii++){
                         RotMat[(table_idx*k+hash_rotation_idx)*h_dim*h_dim+i*h_dim+ii]*=rotation_vecs[table_idx * k * num_rotations * num_dimensions
@@ -153,14 +156,14 @@ void precomputeRotation(){
                 }
                 print_random_rotation(table_idx,hash_rotation_idx);
             }
-            for(int i = 0; i<h_dim;i++){
+            /*for(int i = 0; i<h_dim;i++){
                 for(int ii = 0; ii<h_dim;ii++){
                     RotMat[(table_idx*k+hash_rotation_idx)*h_dim*h_dim+i*h_dim+ii]*=rotation_vecs[table_idx * k * num_rotations * num_dimensions
                                                                                                    + hash_rotation_idx * num_rotations * num_dimensions
                                                                                                    + (num_rotations-1) * num_dimensions
                                                                                                    + ii];//or ii
                 }
-            }
+            }*/
         }
     }
 }
