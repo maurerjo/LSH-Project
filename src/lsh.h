@@ -23,4 +23,10 @@ void init_rng();
 void setup_tables();
 void run_queries(float * queries, int num_queries, int * result);
 
+void precomputeRotation();
+void rotations_precomputed(int table_idx, float *data_point, float *result_vec);
+void random_rotation_precomputed(float *x, int table_idx, int hash_rotation_idx, float *rotated_x);
+
+void print_random_rotation(int table_idx, int hash_idx);
+
 #endif /* LSH_H_ */

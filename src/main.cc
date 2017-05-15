@@ -195,7 +195,7 @@ int main(){
     Stopwatch watch;
     cout << "start\n";
     const int size = (1<<15);
-    const int dimension = 1<<7;
+    const int dimension = 1<<3;
     const int table_size = (1<<26)-104009;
     const int num_queries = 1 << 12;
     vector<float> data(size*dimension);
@@ -216,7 +216,7 @@ int main(){
     //cross polytope
     cout << "Cross polytope hash" << endl;
     //cross polytope parameters
-    int k=5, num_table=17, num_rotation=3;
+    int k=7, num_table=17, num_rotation=3;
     //setup tables
     cout << "Create Tables" << endl;
     vector<vector<int> > tables(num_table);
@@ -241,7 +241,7 @@ int main(){
         }
         random_rotation_vec[i]=move(random_rotation);
     }
-    /*for (int table_idx = 0; table_idx < num_table; table_idx++) {
+    for (int table_idx = 0; table_idx < num_table; table_idx++) {
       for (int rotation_idx = 0; rotation_idx < num_rotation; rotation_idx++) {
         for (int j = 0; j < k; j++) {
           for (int dim = 0; dim < dimension; dim++) {
@@ -249,7 +249,9 @@ int main(){
           }
         }
       }
-    }*/
+    }
+    precomputeRotation();
+    print_random_rotation(0,0);
     cout << "Setup Tables" << endl;
     for(int i = 0; i<num_table;i++){
         for(int ii = 0; ii < size; ii++){
@@ -259,14 +261,14 @@ int main(){
             vector<vector<float> > rotations_vec = vector<vector<float> >(k);
             rotations(dimension, num_rotation, random_rotation_vec, i, data_vec, rotations_vec,k);
             float rotations_vec_c[k*dimension];
-            rotations(i, &data[ii*dimension], rotations_vec_c);
+            rotations_precomputed(i, &data[ii*dimension], rotations_vec_c);
             vector<unsigned int> result(1);
             crosspolytope(rotations_vec,k,dimension,result);
             unsigned int result_c = 0;
             crosspolytope(rotations_vec_c, &result_c, 1);
             tables[i][result[0]%table_size] = ii;
             //cout << "set_table_entry(" << i << ", " << result_c << ", " << ii << "); " << (i*table_size + (result_c % table_size)) << endl;
-            //cout << "c++ result" << result[0] << endl;
+            //cout << "c++ result " << result[0] << endl;
             set_table_entry(i, result_c, ii);
             //cout << "Successfully Set" << endl;
         }
