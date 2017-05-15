@@ -252,7 +252,7 @@ int main(){
       }
     }
     precomputeRotation();
-    print_random_rotation(0,0);
+    //print_random_rotation(0,0);
     cout << "Setup Tables" << endl;
     for(int i = 0; i<num_table;i++){
         for(int ii = 0; ii < size; ii++){
@@ -263,6 +263,7 @@ int main(){
             rotations(dimension, num_rotation, random_rotation_vec, i, data_vec, rotations_vec,k);
             float rotations_vec_c[k*dimension];
             rotations_precomputed(i, &data[ii*dimension], rotations_vec_c);
+            //cout<<rotations_vec_c[0]<<", "<<rotations_vec[0][0]<<endl;
             rotations(i, &data[ii*dimension], rotations_vec_c);
             //Uncomment to ensure table setup is identical (requires setting rotation vecs to be the same)
             //cout << rotations_vec_c[0] << " == " << rotations_vec[0][0] << endl;

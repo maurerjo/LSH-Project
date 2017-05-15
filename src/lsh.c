@@ -131,10 +131,19 @@ void precomputeRotation(){
             for(int i = 0; i < h_dim*h_dim;i++){
                 RotMat[(table_idx*k+hash_rotation_idx)*h_dim*h_dim+i]=0;
             }
+            //RotMat to identity
             for(int i = 0; i < h_dim;i++){
                 RotMat[(table_idx*k+hash_rotation_idx)*h_dim*h_dim+i*h_dim+i]=1;
             }
+
+            //initialize tempRot to be RotMat
+            for(int i = 0; i < h_dim*h_dim;i++){
+                tempRot[i] = RotMat[(table_idx*k+hash_rotation_idx)*h_dim*h_dim+i];
+            }
+
             for(int rotation_idx = 0; rotation_idx<num_rotations;rotation_idx++){
+
+                //multiplication with random +/-1 diag matrix
                 for(int i = 0; i<h_dim;i++){
                     for(int ii = 0; ii<h_dim;ii++){
                         RotMat[(table_idx*k+hash_rotation_idx)*h_dim*h_dim+i*h_dim+ii]*=rotation_vecs[table_idx * k * num_rotations * num_dimensions
@@ -144,7 +153,8 @@ void precomputeRotation(){
                         tempRot[i*h_dim+ii] = RotMat[(table_idx*k+hash_rotation_idx)*h_dim*h_dim+i*h_dim+ii];
                     }
                 }
-                print_random_rotation(table_idx,hash_rotation_idx);
+
+                //MMM with hadamard
                 for(int i = 0; i<h_dim;i++){
                     for(int ii = 0; ii<h_dim;ii++) {
                         float temp = 0;
@@ -154,16 +164,7 @@ void precomputeRotation(){
                         RotMat[(table_idx * k + hash_rotation_idx) * h_dim * h_dim + i * h_dim + ii] = temp;
                     }
                 }
-                print_random_rotation(table_idx,hash_rotation_idx);
             }
-            /*for(int i = 0; i<h_dim;i++){
-                for(int ii = 0; ii<h_dim;ii++){
-                    RotMat[(table_idx*k+hash_rotation_idx)*h_dim*h_dim+i*h_dim+ii]*=rotation_vecs[table_idx * k * num_rotations * num_dimensions
-                                                                                                   + hash_rotation_idx * num_rotations * num_dimensions
-                                                                                                   + (num_rotations-1) * num_dimensions
-                                                                                                   + ii];//or ii
-                }
-            }*/
         }
     }
 }
