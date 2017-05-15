@@ -136,12 +136,13 @@ void precomputeRotation(){
                 RotMat[(table_idx*k+hash_rotation_idx)*h_dim*h_dim+i*h_dim+i]=1;
             }
 
-            //initialize tempRot to be RotMat
+            //initialize tempRot to be RotMat, needed if we want to inverse the order of MMM
             for(int i = 0; i < h_dim*h_dim;i++){
                 tempRot[i] = RotMat[(table_idx*k+hash_rotation_idx)*h_dim*h_dim+i];
             }
 
             for(int rotation_idx = 0; rotation_idx<num_rotations;rotation_idx++){
+
 
                 //multiplication with random +/-1 diag matrix
                 for(int i = 0; i<h_dim;i++){
@@ -149,21 +150,22 @@ void precomputeRotation(){
                         RotMat[(table_idx*k+hash_rotation_idx)*h_dim*h_dim+i*h_dim+ii]*=rotation_vecs[table_idx * k * num_rotations * num_dimensions
                                                                                          + hash_rotation_idx * num_rotations * num_dimensions
                                                                                          + rotation_idx * num_dimensions
-                                                                                         + ii];//or ii
+                                                                                         + ii];
                         tempRot[i*h_dim+ii] = RotMat[(table_idx*k+hash_rotation_idx)*h_dim*h_dim+i*h_dim+ii];
                     }
-                }
+                }//end random diag
+
 
                 //MMM with hadamard
                 for(int i = 0; i<h_dim;i++){
                     for(int ii = 0; ii<h_dim;ii++) {
                         float temp = 0;
                         for (int i3 = 0; i3 < h_dim; i3++) {
-                            temp += tempRot[i * h_dim + i3] * HMatC[ii * h_dim + i3];//hadamard matrix is it's own transform
+                            temp += tempRot[ii * h_dim + i3] * HMatC[i * h_dim + i3];//hadamard matrix is it's own transform
                         }
                         RotMat[(table_idx * k + hash_rotation_idx) * h_dim * h_dim + i * h_dim + ii] = temp;
                     }
-                }
+                }//end hadamard mmm
             }
         }
     }
@@ -246,6 +248,7 @@ void crosspolytope(float *x, unsigned int *result, int result_size) {
 
 void random_rotation_precomputed(float *x, int table_idx, int hash_rotation_idx, float *rotated_x) {
     for(int i = 0;i<HMatDimLen;i++){
+        rotated_x[i] = 0;
         for(int ii = 0; ii<HMatDimLen;ii++){
             rotated_x[i]+=x[ii]*RotMat[table_idx * k * HMatDimLen * HMatDimLen
                                        + hash_rotation_idx * HMatDimLen * HMatDimLen
@@ -279,13 +282,8 @@ void random_rotation(float *x, int table_idx, int hash_rotation_idx, int rotatio
 }
 
 void rotations_precomputed(int table_idx, float *data_point, float *result_vec) {
-    float rotated_data[num_dimensions];
     for(int j = 0;j<k;j++) {
-        for (int dim = 0; dim < num_dimensions; dim++) {
-            result_vec[j*num_dimensions + dim] = data_point[dim];
-        }
-        random_rotation_precomputed(rotated_data, table_idx, j,
-                            &result_vec[j*num_dimensions]);
+        random_rotation_precomputed(data_point, table_idx, j, &result_vec[j*num_dimensions]);
     }
 }
 

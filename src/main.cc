@@ -263,8 +263,15 @@ int main(){
             rotations(dimension, num_rotation, random_rotation_vec, i, data_vec, rotations_vec,k);
             float rotations_vec_c[k*dimension];
             rotations_precomputed(i, &data[ii*dimension], rotations_vec_c);
-            //cout<<rotations_vec_c[0]<<", "<<rotations_vec[0][0]<<endl;
-            rotations(i, &data[ii*dimension], rotations_vec_c);
+            //cout<<rotations_vec_c[0]<<", ";
+            //rotations(i, &data[ii*dimension], rotations_vec_c);
+            //cout<<rotations_vec_c[0]<<endl;
+            /*print_random_rotation(i,0);
+            print_random_rotation(i,1);
+            print_random_rotation(i,2);
+            print_random_rotation(i,3);
+            print_random_rotation(i,4);
+            print_random_rotation(i,5);*/
             //Uncomment to ensure table setup is identical (requires setting rotation vecs to be the same)
             //cout << rotations_vec_c[0] << " == " << rotations_vec[0][0] << endl;
             vector<unsigned int> result(1);
@@ -326,7 +333,7 @@ int main(){
         bool found_correct = false;
         for(int i = 0; i<num_table;i++){
             float rotations_vec_c[k*dimension];
-            rotations(i, &queries[ii*dimension], rotations_vec_c);
+            rotations_precomputed(i, &queries[ii*dimension], rotations_vec_c);
 
             unsigned int result_c = 0;
             crosspolytope(rotations_vec_c, &result_c, 1);
