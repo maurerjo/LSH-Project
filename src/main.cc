@@ -195,7 +195,7 @@ int main(){
     Stopwatch watch;
     cout << "start\n";
     const int size = (1<<15);
-    const int dimension = 1<<3;
+    const int dimension = 1<<7;
     const int table_size = (1<<26)-104009;
     const int num_queries = 1 << 12;
     vector<float> data(size*dimension);
@@ -242,7 +242,7 @@ int main(){
         random_rotation_vec[i]=move(random_rotation);
     }
     //Set rotation vecs to be the same in C++ and C
-    for (int table_idx = 0; table_idx < num_table; table_idx++) {
+    /*for (int table_idx = 0; table_idx < num_table; table_idx++) {
       for (int rotation_idx = 0; rotation_idx < num_rotation; rotation_idx++) {
         for (int j = 0; j < k; j++) {
           for (int dim = 0; dim < dimension; dim++) {
@@ -250,7 +250,7 @@ int main(){
           }
         }
       }
-    }
+    }*/
     precomputeRotation();
     //print_random_rotation(0,0);
     cout << "Setup Tables" << endl;
@@ -389,9 +389,11 @@ int main(){
     cout << 100*((float)correct_nnIDs_c)/((float)num_queries) << "% neighbours found in C"<<endl;
     cout << 100*((float)queries_found)/((float)num_queries) << "% neighbours actually found in C"<<endl;
     cout << "Speed up to linear scan: " << (double)linear_time/(double)cp_time << endl;
+    cout << "Speed up to C++: " << (double)cp_time/(double)cp_c_time << endl;
     cout << table_used << " table entries used"<<endl;
     cout << "Program ran for: " << endl;
     watch.PrintElapsedTime();
+    cout << endl;
     return 0;
 }
 
