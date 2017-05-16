@@ -283,31 +283,39 @@ void random_rotation_precomputed_vectorized_unrolled2(float *x, int table_idx, i
                           + hash_rotation_idx * HMatDimLen * HMatDimLen];
     for(int i = 0;i<HMatDimLen;i+=8){//unroll factor: number of floats in __m256
         __m256 vx = _mm256_loadu_ps(&x[i]);
-        __m256 vtemp = _mm256_setzero_ps();
-        __m256 vtemp1 = _mm256_setzero_ps();
-        __m256 vtemp2 = _mm256_setzero_ps();
-        __m256 vtemp3 = _mm256_setzero_ps();
-        __m256 vtemp4 = _mm256_setzero_ps();
-        __m256 vtemp5 = _mm256_setzero_ps();
-        __m256 vtemp6 = _mm256_setzero_ps();
-        __m256 vtemp7 = _mm256_setzero_ps();
+        __m256 vRotMat = _mm256_loadu_ps(&pos[i*HMatDimLen]);
+        __m256 vRotMat1 = _mm256_loadu_ps(&pos[(i+1)*HMatDimLen]);
+        __m256 vRotMat2 = _mm256_loadu_ps(&pos[(i+2)*HMatDimLen]);
+        __m256 vRotMat3 = _mm256_loadu_ps(&pos[(i+3)*HMatDimLen]);
+        __m256 vRotMat4 = _mm256_loadu_ps(&pos[(i+4)*HMatDimLen]);
+        __m256 vRotMat5 = _mm256_loadu_ps(&pos[(i+5)*HMatDimLen]);
+        __m256 vRotMat6 = _mm256_loadu_ps(&pos[(i+6)*HMatDimLen]);
+        __m256 vRotMat7 = _mm256_loadu_ps(&pos[(i+7)*HMatDimLen]);
+        __m256 vtemp = _mm256_mul_ps(vx,vRotMat);
+        __m256 vtemp1 = _mm256_mul_ps(vx,vRotMat1);
+        __m256 vtemp2 = _mm256_mul_ps(vx,vRotMat2);
+        __m256 vtemp3 = _mm256_mul_ps(vx,vRotMat3);
+        __m256 vtemp4 = _mm256_mul_ps(vx,vRotMat4);
+        __m256 vtemp5 = _mm256_mul_ps(vx,vRotMat5);
+        __m256 vtemp6 = _mm256_mul_ps(vx,vRotMat6);
+        __m256 vtemp7 = _mm256_mul_ps(vx,vRotMat7);
         //unroll factor: bigger than latency of fmadd (6) and power of 2 to have good performance in adding up rows (using hadd)
-        for(int ii = 0; ii<HMatDimLen;ii+=8){
-            __m256 vRotMat = _mm256_loadu_ps(&pos[i*HMatDimLen+ii]);
+        for(int ii = 8; ii<HMatDimLen;ii+=8){
+            vRotMat = _mm256_loadu_ps(&pos[i*HMatDimLen+ii]);
             vtemp = _mm256_fmadd_ps(vx,vRotMat,vtemp);//result for rotated_x[i]
-            __m256 vRotMat1 = _mm256_loadu_ps(&pos[(i+1)*HMatDimLen+ii]);
+            vRotMat1 = _mm256_loadu_ps(&pos[(i+1)*HMatDimLen+ii]);
              vtemp1 = _mm256_fmadd_ps(vx,vRotMat1,vtemp1);//result for rotated_x[i+1]
-            __m256 vRotMat2 = _mm256_loadu_ps(&pos[(i+2)*HMatDimLen+ii]);
+            vRotMat2 = _mm256_loadu_ps(&pos[(i+2)*HMatDimLen+ii]);
             vtemp2 = _mm256_fmadd_ps(vx,vRotMat2,vtemp2);
-            __m256 vRotMat3 = _mm256_loadu_ps(&pos[(i+3)*HMatDimLen+ii]);
+            vRotMat3 = _mm256_loadu_ps(&pos[(i+3)*HMatDimLen+ii]);
             vtemp3 = _mm256_fmadd_ps(vx,vRotMat3,vtemp3);
-            __m256 vRotMat4 = _mm256_loadu_ps(&pos[(i+4)*HMatDimLen+ii]);
+            vRotMat4 = _mm256_loadu_ps(&pos[(i+4)*HMatDimLen+ii]);
             vtemp4 = _mm256_fmadd_ps(vx,vRotMat4,vtemp4);
-            __m256 vRotMat5 = _mm256_loadu_ps(&pos[(i+5)*HMatDimLen+ii]);
+            vRotMat5 = _mm256_loadu_ps(&pos[(i+5)*HMatDimLen+ii]);
             vtemp5 = _mm256_fmadd_ps(vx,vRotMat5,vtemp5);
-            __m256 vRotMat6 = _mm256_loadu_ps(&pos[(i+6)*HMatDimLen+ii]);
+            vRotMat6 = _mm256_loadu_ps(&pos[(i+6)*HMatDimLen+ii]);
             vtemp6 = _mm256_fmadd_ps(vx,vRotMat6,vtemp6);
-            __m256 vRotMat7 = _mm256_loadu_ps(&pos[(i+7)*HMatDimLen+ii]);
+            vRotMat7 = _mm256_loadu_ps(&pos[(i+7)*HMatDimLen+ii]);
             vtemp7 = _mm256_fmadd_ps(vx,vRotMat7,vtemp7);
         }
 
