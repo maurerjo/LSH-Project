@@ -194,8 +194,8 @@ int main(){
     init_rng();
     Stopwatch watch;
     cout << "start\n";
-    const int size = (1<<15);
-    const int dimension = 1<<7;
+    const int size = (1<<20);
+    const int dimension = 1<<3;
     const int table_size = (1<<26)-104009;
     const int num_queries = 1 << 12;
     vector<float> data(size*dimension);
@@ -213,10 +213,11 @@ int main(){
     findNearestNeighbours(size, dimension, num_queries, data, queries, nnIDs);
     long linear_time = linear_scan_watch.GetElapsedTime();
     cout << "found nearest neighbour in " << linear_time << " cycles\n";
+    cout << "found nearest neighbour in " << (float)linear_time/(float)num_queries << " cycles/query\n";
     //cross polytope
     cout << "Cross polytope hash" << endl;
     //cross polytope parameters
-    int k=6, num_table=17, num_rotation=3;
+    int k=8, num_table=17, num_rotation=3;
     //setup tables
     cout << "Create Tables" << endl;
     vector<vector<int> > tables(num_table);
@@ -322,6 +323,7 @@ int main(){
     }
     long cp_time=cp_query_watch.GetElapsedTime();
     cout << "Finished queries in " << cp_time << " cycles" << endl;
+    cout << "Finished queries in " << (float)cp_time/(float)num_queries << " cycles/query" << endl;
 
     cout << "Start C queries" << endl;
     Stopwatch cp_c_query_watch;
@@ -365,6 +367,7 @@ int main(){
     }
     long cp_c_time=cp_c_query_watch.GetElapsedTime();
     cout << "Finished C queries in " << cp_c_time << " cycles" << endl;
+    cout << "Finished C queries in " << (float)cp_c_time/(float)num_queries << " cycles/query" << endl;
     cout << "N * D * D = " << (num_queries * dimension * dimension) << endl;
 
     int correct_nnIDs=0;
