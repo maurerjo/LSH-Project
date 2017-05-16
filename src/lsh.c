@@ -248,12 +248,30 @@ void crosspolytope(float *x, unsigned int *result, int result_size) {
 
 void random_rotation_precomputed(float *x, int table_idx, int hash_rotation_idx, float *rotated_x) {
     for(int i = 0;i<HMatDimLen;i++){
-        rotated_x[i] = 0;
+        float temp = 0;
         for(int ii = 0; ii<HMatDimLen;ii++){
-            rotated_x[i]+=x[ii]*RotMat[table_idx * k * HMatDimLen * HMatDimLen
+            temp+=x[ii]*RotMat[table_idx * k * HMatDimLen * HMatDimLen
                                        + hash_rotation_idx * HMatDimLen * HMatDimLen
                                        + i*HMatDimLen+ii];
         }
+        rotated_x[i] = temp;
+    }
+}
+
+void random_rotation_precomputed_vectorized(float *x, int table_idx, int hash_rotation_idx, float *rotated_x) {
+    for(int i = 0;i<HMatDimLen;i+=8){
+        __m256 vtemp = _mm256_setzero_ps();
+        float * pos = &RotMat[table_idx * k * HMatDimLen * HMatDimLen
+                              + hash_rotation_idx * HMatDimLen * HMatDimLen
+                              + i*HMatDimLen];
+        for(int ii = 0; ii<HMatDimLen;ii++){
+            __m256 vx = _mm256_set1_ps(x[ii]);
+
+            __m256 vRotMat = _mm256_set_ps(pos[ii], pos[HMatDimLen+ii],pos[2*HMatDimLen+ii],pos[3*HMatDimLen+ii],
+                                           pos[4*HMatDimLen+ii],pos[5*HMatDimLen+ii],pos[6*HMatDimLen+ii],pos[7*HMatDimLen+ii]);
+            vtemp = _mm256_fmadd_ps(vx,vRotMat,vtemp);
+        }
+        _mm256_storeu_ps(rotated_x+i, vtemp);
     }
 }
 
@@ -283,7 +301,7 @@ void random_rotation(float *x, int table_idx, int hash_rotation_idx, int rotatio
 
 void rotations_precomputed(int table_idx, float *data_point, float *result_vec) {
     for(int j = 0;j<k;j++) {
-        random_rotation_precomputed(data_point, table_idx, j, &result_vec[j*num_dimensions]);
+        random_rotation_precomputed_vectorized(data_point, table_idx, j, &result_vec[j*num_dimensions]);
     }
 }
 
