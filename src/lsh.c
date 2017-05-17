@@ -314,7 +314,7 @@ void crosspolytope(float *x, unsigned int *result, int result_size) {
     int cldim = (int)ceil(log2(num_dimensions))+1;
     for(int ii = 0; ii<k;ii++){
         result[i]<<=cldim;
-        result[i]|= locality_sensitive_hash(&x[ii * num_dimensions], num_dimensions);
+        result[i]|= locality_sensitive_hash_optimized(&x[ii * num_dimensions], num_dimensions);
     }
   }
 }
