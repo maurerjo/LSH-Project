@@ -207,7 +207,7 @@ int locality_sensitive_hash(float *data, int dim) {
 int locality_sensitive_hash_optimized(float *data, int dim) {
     int res = 0;
     //float best = data[0];
-    __m256 best = _mm256_load_ps(data);
+    __m256 best = _mm256_loadu_ps(data);
     __m256 ZERO = _mm256_setzero_ps();
     __m256 best_neg = _mm256_sub_ps(ZERO,best);
     __m256i index = _mm256_set_epi32(0,1,2,3,4,5,6,7);
@@ -215,16 +215,16 @@ int locality_sensitive_hash_optimized(float *data, int dim) {
     __m256i allONE = _mm256_set1_epi32(-1);
     __m256i best_idx = index;
     __m256i best_idx_neg = index;
-    for (int ii = 1; ii < dim; ii+=8) {
+    for (int ii = 8; ii < dim; ii+=8) {
         index = _mm256_add_epi32(index,iter);
-        __m256 current = _mm256_load_ps(data+ii);
+        __m256 current = _mm256_loadu_ps(data+ii);
         __m256 current_neg = _mm256_sub_ps(ZERO,current);
         __m256 compare = _mm256_cmp_ps(best, current, 1);
         __m256i compare_i = _mm256_castps_si256(compare);
         best_idx = _mm256_or_si256(best_idx,compare_i);//set all changed indexes to 0xFFFFFFFF
         __m256i xor_factor = _mm256_xor_si256(compare_i,allONE);
         __m256i and_factor = _mm256_or_si256(xor_factor,index);
-        best_idx = _mm256_and_si256(best_idx,and_factor);//set new best indexes TODO
+        best_idx = _mm256_and_si256(best_idx,and_factor);//set new best indexes
         best = _mm256_max_ps(best,current);//set new best values
 
         __m256 compare_neg = _mm256_cmp_ps(best_neg, current_neg, 1);
@@ -235,6 +235,72 @@ int locality_sensitive_hash_optimized(float *data, int dim) {
         best_idx_neg = _mm256_and_si256(best_idx_neg,and_factor_neg);//set new best indexes
         best_neg = _mm256_max_ps(best_neg,current_neg);//set new best negative values
     }
+    __m256 compare = _mm256_cmp_ps(best, best_neg, 1);
+    __m256i compare_i = _mm256_castps_si256(compare);
+    best_idx = _mm256_or_si256(best_idx,compare_i);//set all changed indexes to 0xFFFFFFFF
+    __m256i xor_factor = _mm256_xor_si256(compare_i,allONE);
+    __m256i vdim = _mm256_set1_epi32(dim);
+    best_idx_neg = _mm256_add_epi32(best_idx_neg,vdim);
+    __m256i and_factor = _mm256_or_si256(xor_factor,best_idx_neg);
+    best_idx = _mm256_and_si256(best_idx,and_factor);//set new best indexes
+    best = _mm256_max_ps(best,best_neg);//set new best values
+
+    __m256i best_i = _mm256_castps_si256(best);
+    int value0 = _mm256_extract_epi32(best_i, 0);
+    int value1 = _mm256_extract_epi32(best_i, 1);
+    int value2 = _mm256_extract_epi32(best_i, 2);
+    int value3 = _mm256_extract_epi32(best_i, 3);
+    int value4 = _mm256_extract_epi32(best_i, 4);
+    int value5 = _mm256_extract_epi32(best_i, 5);
+    int value6 = _mm256_extract_epi32(best_i, 6);
+    int value7 = _mm256_extract_epi32(best_i, 7);
+    int idx0 = _mm256_extract_epi32(best_idx, 0);
+    int idx1 = _mm256_extract_epi32(best_idx, 1);
+    int idx2 = _mm256_extract_epi32(best_idx, 2);
+    int idx3 = _mm256_extract_epi32(best_idx, 3);
+    int idx4 = _mm256_extract_epi32(best_idx, 4);
+    int idx5 = _mm256_extract_epi32(best_idx, 5);
+    int idx6 = _mm256_extract_epi32(best_idx, 6);
+    int idx7 = _mm256_extract_epi32(best_idx, 7);
+    int res2, res4, res6;
+    if(value0>value1){
+        res = idx0;
+    }else{
+        res = idx1;
+        value0 = value1;
+    }
+    if(value2>value3){
+        res2 = idx2;
+    }else{
+        res2 = idx3;
+        value2 = value3;
+    }
+    if(value4>value5){
+        res4 = idx4;
+    }else{
+        res4 = idx5;
+        value4 = value5;
+    }
+    if(value6>value7){
+        res6 = idx6;
+    }else{
+        res6 = idx7;
+        value6 = value7;
+    }
+    if(value0>value2){
+    }else{
+        res = res2;
+        value0 = value2;
+    }
+    if(value4>value6){
+    }else{
+        res4 = res6;
+        value4 = value6;
+    }
+    if(value0>value4){
+    }else{
+        res = res4;
+    }
     return res;
 }
 
@@ -244,7 +310,7 @@ void crosspolytope(float *x, unsigned int *result, int result_size) {
     int cldim = (int)ceil(log2(num_dimensions))+1;
     for(int ii = 0; ii<k;ii++){
         result[i]<<=cldim;
-        result[i]|= locality_sensitive_hash(&x[ii * num_dimensions], num_dimensions);
+        result[i]|= locality_sensitive_hash_optimized(&x[ii * num_dimensions], num_dimensions);
     }
   }
 }
@@ -346,20 +412,20 @@ void random_rotation_precomputed_vectorized_unrolled2(float *x, int table_idx, i
 void random_rotation_precomputed_vectorized_unrolled2_bulked(float *x, int table_idx, int hash_rotation_idx, float *rotated_x, int bulk_factor) {
     float * pos = &RotMat[table_idx * k * HMatDimLen * HMatDimLen
                           + hash_rotation_idx * HMatDimLen * HMatDimLen];
-        //unroll factor: multiple of number of floats in __m256 and
-        // bigger than latency of fmadd (6) and
-        // power of 2 to have good performance in adding up rows (using hadd)
-        for (int i = 0; i < HMatDimLen; i += 8) {
-            for(int b = 0; b<bulk_factor;b++) {
+    //unroll factor: multiple of number of floats in __m256 and
+    // bigger than latency of fmadd (6) and
+    // power of 2 to have good performance in adding up rows (using hadd)
+    for (int i = 0; i < HMatDimLen; i += 8) {
+        __m256 vRotMat = _mm256_loadu_ps(&pos[i * HMatDimLen]);
+        __m256 vRotMat1 = _mm256_loadu_ps(&pos[(i + 1) * HMatDimLen]);
+        __m256 vRotMat2 = _mm256_loadu_ps(&pos[(i + 2) * HMatDimLen]);
+        __m256 vRotMat3 = _mm256_loadu_ps(&pos[(i + 3) * HMatDimLen]);
+        __m256 vRotMat4 = _mm256_loadu_ps(&pos[(i + 4) * HMatDimLen]);
+        __m256 vRotMat5 = _mm256_loadu_ps(&pos[(i + 5) * HMatDimLen]);
+        __m256 vRotMat6 = _mm256_loadu_ps(&pos[(i + 6) * HMatDimLen]);
+        __m256 vRotMat7 = _mm256_loadu_ps(&pos[(i + 7) * HMatDimLen]);
+        for(int b = 0; b<bulk_factor;b++) {
             __m256 vx = _mm256_loadu_ps(&x[i+b*num_dimensions]);
-            __m256 vRotMat = _mm256_loadu_ps(&pos[i * HMatDimLen]);
-            __m256 vRotMat1 = _mm256_loadu_ps(&pos[(i + 1) * HMatDimLen]);
-            __m256 vRotMat2 = _mm256_loadu_ps(&pos[(i + 2) * HMatDimLen]);
-            __m256 vRotMat3 = _mm256_loadu_ps(&pos[(i + 3) * HMatDimLen]);
-            __m256 vRotMat4 = _mm256_loadu_ps(&pos[(i + 4) * HMatDimLen]);
-            __m256 vRotMat5 = _mm256_loadu_ps(&pos[(i + 5) * HMatDimLen]);
-            __m256 vRotMat6 = _mm256_loadu_ps(&pos[(i + 6) * HMatDimLen]);
-            __m256 vRotMat7 = _mm256_loadu_ps(&pos[(i + 7) * HMatDimLen]);
             __m256 vtemp = _mm256_mul_ps(vx, vRotMat);
             __m256 vtemp1 = _mm256_mul_ps(vx, vRotMat1);
             __m256 vtemp2 = _mm256_mul_ps(vx, vRotMat2);
@@ -370,22 +436,22 @@ void random_rotation_precomputed_vectorized_unrolled2_bulked(float *x, int table
             __m256 vtemp7 = _mm256_mul_ps(vx, vRotMat7);
             //unroll factor: number of floats in __m256
             for (int ii = 8; ii < HMatDimLen; ii += 8) {
-                vRotMat = _mm256_loadu_ps(&pos[i * HMatDimLen + ii]);
-                vtemp = _mm256_fmadd_ps(vx, vRotMat, vtemp);//result for rotated_x[i]
-                vRotMat1 = _mm256_loadu_ps(&pos[(i + 1) * HMatDimLen + ii]);
-                vtemp1 = _mm256_fmadd_ps(vx, vRotMat1, vtemp1);//result for rotated_x[i+1]
-                vRotMat2 = _mm256_loadu_ps(&pos[(i + 2) * HMatDimLen + ii]);
-                vtemp2 = _mm256_fmadd_ps(vx, vRotMat2, vtemp2);
-                vRotMat3 = _mm256_loadu_ps(&pos[(i + 3) * HMatDimLen + ii]);
-                vtemp3 = _mm256_fmadd_ps(vx, vRotMat3, vtemp3);
-                vRotMat4 = _mm256_loadu_ps(&pos[(i + 4) * HMatDimLen + ii]);
-                vtemp4 = _mm256_fmadd_ps(vx, vRotMat4, vtemp4);
-                vRotMat5 = _mm256_loadu_ps(&pos[(i + 5) * HMatDimLen + ii]);
-                vtemp5 = _mm256_fmadd_ps(vx, vRotMat5, vtemp5);
-                vRotMat6 = _mm256_loadu_ps(&pos[(i + 6) * HMatDimLen + ii]);
-                vtemp6 = _mm256_fmadd_ps(vx, vRotMat6, vtemp6);
-                vRotMat7 = _mm256_loadu_ps(&pos[(i + 7) * HMatDimLen + ii]);
-                vtemp7 = _mm256_fmadd_ps(vx, vRotMat7, vtemp7);
+                __m256 vRotMati = _mm256_loadu_ps(&pos[i * HMatDimLen + ii]);
+                vtemp = _mm256_fmadd_ps(vx, vRotMati, vtemp);//result for rotated_x[i]
+                __m256 vRotMat1i = _mm256_loadu_ps(&pos[(i + 1) * HMatDimLen + ii]);
+                vtemp1 = _mm256_fmadd_ps(vx, vRotMat1i, vtemp1);//result for rotated_x[i+1]
+                __m256 vRotMat2i = _mm256_loadu_ps(&pos[(i + 2) * HMatDimLen + ii]);
+                vtemp2 = _mm256_fmadd_ps(vx, vRotMat2i, vtemp2);
+                __m256 vRotMat3i = _mm256_loadu_ps(&pos[(i + 3) * HMatDimLen + ii]);
+                vtemp3 = _mm256_fmadd_ps(vx, vRotMat3i, vtemp3);
+                __m256 vRotMat4i = _mm256_loadu_ps(&pos[(i + 4) * HMatDimLen + ii]);
+                vtemp4 = _mm256_fmadd_ps(vx, vRotMat4i, vtemp4);
+                __m256 vRotMat5i = _mm256_loadu_ps(&pos[(i + 5) * HMatDimLen + ii]);
+                vtemp5 = _mm256_fmadd_ps(vx, vRotMat5i, vtemp5);
+                __m256 vRotMat6i = _mm256_loadu_ps(&pos[(i + 6) * HMatDimLen + ii]);
+                vtemp6 = _mm256_fmadd_ps(vx, vRotMat6i, vtemp6);
+                __m256 vRotMat7i = _mm256_loadu_ps(&pos[(i + 7) * HMatDimLen + ii]);
+                vtemp7 = _mm256_fmadd_ps(vx, vRotMat7i, vtemp7);
             }
 
             __m256 sum0, sum1, sum2, sum01, sum11, sum21;
@@ -410,6 +476,52 @@ void random_rotation_precomputed_vectorized_unrolled2_bulked(float *x, int table
     }
 
 }
+
+void random_rotation8_precomputed_vectorized_unrolled2_bulked(float *x, int table_idx, int hash_rotation_idx, float *rotated_x, int bulk_factor) {
+    float * pos = &RotMat[table_idx * k * HMatDimLen * HMatDimLen
+                          + hash_rotation_idx * HMatDimLen * HMatDimLen];
+        __m256 vRotMat = _mm256_loadu_ps(pos);
+        __m256 vRotMat1 = _mm256_loadu_ps(&pos[HMatDimLen]);
+        __m256 vRotMat2 = _mm256_loadu_ps(&pos[(2) * HMatDimLen]);
+        __m256 vRotMat3 = _mm256_loadu_ps(&pos[(3) * HMatDimLen]);
+        __m256 vRotMat4 = _mm256_loadu_ps(&pos[(4) * HMatDimLen]);
+        __m256 vRotMat5 = _mm256_loadu_ps(&pos[(5) * HMatDimLen]);
+        __m256 vRotMat6 = _mm256_loadu_ps(&pos[(6) * HMatDimLen]);
+        __m256 vRotMat7 = _mm256_loadu_ps(&pos[(7) * HMatDimLen]);
+        for(int b = 0; b<bulk_factor;b++) {
+            __m256 vx = _mm256_loadu_ps(&x[b*num_dimensions]);
+            __m256 vtemp = _mm256_mul_ps(vx, vRotMat);
+            __m256 vtemp1 = _mm256_mul_ps(vx, vRotMat1);
+            __m256 vtemp2 = _mm256_mul_ps(vx, vRotMat2);
+            __m256 vtemp3 = _mm256_mul_ps(vx, vRotMat3);
+            __m256 vtemp4 = _mm256_mul_ps(vx, vRotMat4);
+            __m256 vtemp5 = _mm256_mul_ps(vx, vRotMat5);
+            __m256 vtemp6 = _mm256_mul_ps(vx, vRotMat6);
+            __m256 vtemp7 = _mm256_mul_ps(vx, vRotMat7);
+            //unroll factor: number of floats in __m256
+
+            __m256 sum0, sum1, sum2, sum01, sum11, sum21;
+            __m128 hi, lo, hi1, lo1, hi2, lo2, vy0, vy4;
+            sum0 = _mm256_hadd_ps(vtemp, vtemp1);//r0 r0 r1 r1 r0 r0 r1 r1
+            sum1 = _mm256_hadd_ps(vtemp2, vtemp3);
+            sum2 = _mm256_hadd_ps(sum0, sum1);//r0 r1 r2 r3 r0 r1 r2 r3
+            hi = _mm256_extractf128_ps(sum2, 1);
+            lo = _mm256_castps256_ps128(sum2);
+            vy0 = _mm_add_ps(lo, hi);// r0 r1 r2 r3
+            sum01 = _mm256_hadd_ps(vtemp4, vtemp5);
+            sum11 = _mm256_hadd_ps(vtemp6, vtemp7);
+            sum21 = _mm256_hadd_ps(sum01, sum11);
+            hi1 = _mm256_extractf128_ps(sum21, 1);
+            lo1 = _mm256_castps256_ps128(sum21);
+            vy4 = _mm_add_ps(lo1, hi1);// r4 r5 r6 r7
+
+            __m256 vy = _mm256_set_m128(vy4, vy0);
+
+            _mm256_storeu_ps(rotated_x + b*num_dimensions*k, vy);
+        }
+    }
+
+
 
 //use random_rotation_precomputed_vectorized_unrolled2 for better performance
 void random_rotation_precomputed_vectorized_unrolled(float *x, int table_idx, int hash_rotation_idx, float *rotated_x) {

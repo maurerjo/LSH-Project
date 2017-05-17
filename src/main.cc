@@ -217,7 +217,7 @@ int main(){
     //cross polytope
     cout << "Cross polytope hash" << endl;
     //cross polytope parameters
-    int k=8, num_table=17, num_rotation=3;
+    int k=8, num_table=1, num_rotation=3;
     //setup tables
     cout << "Create Tables" << endl;
     vector<vector<int> > tables(num_table);
@@ -340,13 +340,15 @@ int main(){
             crosspolytope(rotations_vec_c, &result_c, 1);
 
             //cout <<" "<< result[0]<<" ";
-            int id_c = get_neighbor(i, result_c);
+            int id_c;
+            id_c = get_neighbor(i, result_c);
             //cout << result_c << ", " << id_c << ", " << nnIDs[ii] <<endl;
             if (id_c == nnIDs[ii]) {
               found_correct = true;
             }
             if(id_c!=-1) {
-                float current_distance = negative_inner_product(&data[id_c*dimension],&queries[ii*dimension]);
+                float current_distance;
+                current_distance = negative_inner_product(&data[id_c*dimension],&queries[ii*dimension]);
                 if(current_distance>min_c_distance){
                     min_c_distance = current_distance;
                     cp_c_result[ii]=id_c;
@@ -362,13 +364,13 @@ int main(){
     cout << "Finished C queries in " << cp_c_time << " cycles" << endl;
     cout << "Finished C queries in " << (float)cp_c_time/(float)num_queries << " cycles/query" << endl;
     cout << "N * D * D = " << (num_queries * dimension * dimension) << endl;
-    cout << "Performance (flops/cycle) = " << (float)(num_queries * dimension * dimension * 2 * k * num_table)/(float)cp_c_time << endl;
+    cout << "Performance (flops/cycle) = " << num_queries *(float)(dimension * dimension * 2 * k * num_table)/(float)cp_c_time << endl;
 
 
     cout << "Start bulked C queries" << endl;
     Stopwatch cp_cb_query_watch;
     vector<int> cp_cb_result(num_queries);
-    int bulk_factor = 16;
+    int bulk_factor = 1<<10;
     for(int ii = 0; ii < num_queries; ii+=bulk_factor){
         vector<float> min_cb_distance(bulk_factor,-1000000.0);
         for(int i = 0; i<num_table;i++){
@@ -396,7 +398,7 @@ int main(){
     long cp_cb_time=cp_cb_query_watch.GetElapsedTime();
     cout << "Finished bulked C queries in " << cp_cb_time << " cycles" << endl;
     cout << "Finished bulked C queries in " << (float)cp_cb_time/(float)num_queries << " cycles/query" << endl;
-    cout << "Bulked Performance (flops/cycle) = " << (float)(num_queries * dimension * dimension * 2 * k * num_table)/(float)cp_cb_time << endl;
+    cout << "Bulked Performance (flops/cycle) = " << num_queries*(float)(dimension * dimension * 2 * k * num_table)/(float)cp_cb_time << endl;
 
 
 
