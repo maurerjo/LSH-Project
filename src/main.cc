@@ -195,7 +195,7 @@ int main(){
     Stopwatch watch;
     cout << "start\n";
     const int size = (1<<15);
-    const int dimension = 1<<3;
+    const int dimension = 1<<4;
     const int table_size = (1<<26)-104009;
     const int num_queries = 1 << 12;
     vector<float> data(size*dimension);
@@ -217,7 +217,7 @@ int main(){
     //cross polytope
     cout << "Cross polytope hash" << endl;
     //cross polytope parameters
-    int k=8, num_table=1, num_rotation=3;
+    int k=5, num_table=17, num_rotation=3;
     //setup tables
     cout << "Create Tables" << endl;
     vector<vector<int> > tables(num_table);
