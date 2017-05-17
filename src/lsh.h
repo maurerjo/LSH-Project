@@ -20,12 +20,16 @@ void SetRotationVecs(int num_tables, int num_rotations, int k, int num_dimension
 void set_rotation_vec_entry(int table_idx, int hash_rotation_idx, int rotation_idx_, int dim_idx, float value);
 void init_rng();
 
+float negative_inner_product(float * vec1, float * vec2);
+
 void setup_tables();
 void run_queries(float * queries, int num_queries, int * result);
 
 void precomputeRotation();
 void rotations_precomputed(int table_idx, float *data_point, float *result_vec);
 void random_rotation_precomputed(float *x, int table_idx, int hash_rotation_idx, float *rotated_x);
+
+void rotations_precomputed_bulked(int table_idx, float *data_point, float *result_vec, int bulk_factor);
 
 void print_random_rotation(int table_idx, int hash_idx);
 

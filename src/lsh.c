@@ -164,7 +164,7 @@ void precomputeRotation(){
                     for(int ii = 0; ii<h_dim;ii++) {
                         float temp = 0;
                         for (int i3 = 0; i3 < h_dim; i3++) {
-                            temp += tempRot[ii * h_dim + i3] * HMatC[i * h_dim + i3];//hadamard matrix is it's own transform
+                            temp += tempRot[ii * h_dim + i3] * HMatC[i * h_dim + i3];//hadamard matrix is it's own transpose
                         }
                         RotMat[(table_idx * k + hash_rotation_idx) * h_dim * h_dim + i * h_dim + ii] = temp;
                     }
@@ -281,7 +281,10 @@ void random_rotation_precomputed_vectorized(float *x, int table_idx, int hash_ro
 void random_rotation_precomputed_vectorized_unrolled2(float *x, int table_idx, int hash_rotation_idx, float *rotated_x) {
     float * pos = &RotMat[table_idx * k * HMatDimLen * HMatDimLen
                           + hash_rotation_idx * HMatDimLen * HMatDimLen];
-    for(int i = 0;i<HMatDimLen;i+=8){//unroll factor: number of floats in __m256
+    //unroll factor: multiple of number of floats in __m256 and
+    // bigger than latency of fmadd (6) and
+    // power of 2 to have good performance in adding up rows (using hadd)
+    for(int i = 0;i<HMatDimLen;i+=8){
         __m256 vx = _mm256_loadu_ps(&x[i]);
         __m256 vRotMat = _mm256_loadu_ps(&pos[i*HMatDimLen]);
         __m256 vRotMat1 = _mm256_loadu_ps(&pos[(i+1)*HMatDimLen]);
@@ -299,12 +302,12 @@ void random_rotation_precomputed_vectorized_unrolled2(float *x, int table_idx, i
         __m256 vtemp5 = _mm256_mul_ps(vx,vRotMat5);
         __m256 vtemp6 = _mm256_mul_ps(vx,vRotMat6);
         __m256 vtemp7 = _mm256_mul_ps(vx,vRotMat7);
-        //unroll factor: bigger than latency of fmadd (6) and power of 2 to have good performance in adding up rows (using hadd)
+        //unroll factor: number of floats in __m256
         for(int ii = 8; ii<HMatDimLen;ii+=8){
             vRotMat = _mm256_loadu_ps(&pos[i*HMatDimLen+ii]);
             vtemp = _mm256_fmadd_ps(vx,vRotMat,vtemp);//result for rotated_x[i]
             vRotMat1 = _mm256_loadu_ps(&pos[(i+1)*HMatDimLen+ii]);
-             vtemp1 = _mm256_fmadd_ps(vx,vRotMat1,vtemp1);//result for rotated_x[i+1]
+            vtemp1 = _mm256_fmadd_ps(vx,vRotMat1,vtemp1);//result for rotated_x[i+1]
             vRotMat2 = _mm256_loadu_ps(&pos[(i+2)*HMatDimLen+ii]);
             vtemp2 = _mm256_fmadd_ps(vx,vRotMat2,vtemp2);
             vRotMat3 = _mm256_loadu_ps(&pos[(i+3)*HMatDimLen+ii]);
@@ -340,6 +343,75 @@ void random_rotation_precomputed_vectorized_unrolled2(float *x, int table_idx, i
     }
 }
 
+void random_rotation_precomputed_vectorized_unrolled2_bulked(float *x, int table_idx, int hash_rotation_idx, float *rotated_x, int bulk_factor) {
+    float * pos = &RotMat[table_idx * k * HMatDimLen * HMatDimLen
+                          + hash_rotation_idx * HMatDimLen * HMatDimLen];
+        //unroll factor: multiple of number of floats in __m256 and
+        // bigger than latency of fmadd (6) and
+        // power of 2 to have good performance in adding up rows (using hadd)
+        for (int i = 0; i < HMatDimLen; i += 8) {
+            for(int b = 0; b<bulk_factor;b++) {
+            __m256 vx = _mm256_loadu_ps(&x[i+b*num_dimensions]);
+            __m256 vRotMat = _mm256_loadu_ps(&pos[i * HMatDimLen]);
+            __m256 vRotMat1 = _mm256_loadu_ps(&pos[(i + 1) * HMatDimLen]);
+            __m256 vRotMat2 = _mm256_loadu_ps(&pos[(i + 2) * HMatDimLen]);
+            __m256 vRotMat3 = _mm256_loadu_ps(&pos[(i + 3) * HMatDimLen]);
+            __m256 vRotMat4 = _mm256_loadu_ps(&pos[(i + 4) * HMatDimLen]);
+            __m256 vRotMat5 = _mm256_loadu_ps(&pos[(i + 5) * HMatDimLen]);
+            __m256 vRotMat6 = _mm256_loadu_ps(&pos[(i + 6) * HMatDimLen]);
+            __m256 vRotMat7 = _mm256_loadu_ps(&pos[(i + 7) * HMatDimLen]);
+            __m256 vtemp = _mm256_mul_ps(vx, vRotMat);
+            __m256 vtemp1 = _mm256_mul_ps(vx, vRotMat1);
+            __m256 vtemp2 = _mm256_mul_ps(vx, vRotMat2);
+            __m256 vtemp3 = _mm256_mul_ps(vx, vRotMat3);
+            __m256 vtemp4 = _mm256_mul_ps(vx, vRotMat4);
+            __m256 vtemp5 = _mm256_mul_ps(vx, vRotMat5);
+            __m256 vtemp6 = _mm256_mul_ps(vx, vRotMat6);
+            __m256 vtemp7 = _mm256_mul_ps(vx, vRotMat7);
+            //unroll factor: number of floats in __m256
+            for (int ii = 8; ii < HMatDimLen; ii += 8) {
+                vRotMat = _mm256_loadu_ps(&pos[i * HMatDimLen + ii]);
+                vtemp = _mm256_fmadd_ps(vx, vRotMat, vtemp);//result for rotated_x[i]
+                vRotMat1 = _mm256_loadu_ps(&pos[(i + 1) * HMatDimLen + ii]);
+                vtemp1 = _mm256_fmadd_ps(vx, vRotMat1, vtemp1);//result for rotated_x[i+1]
+                vRotMat2 = _mm256_loadu_ps(&pos[(i + 2) * HMatDimLen + ii]);
+                vtemp2 = _mm256_fmadd_ps(vx, vRotMat2, vtemp2);
+                vRotMat3 = _mm256_loadu_ps(&pos[(i + 3) * HMatDimLen + ii]);
+                vtemp3 = _mm256_fmadd_ps(vx, vRotMat3, vtemp3);
+                vRotMat4 = _mm256_loadu_ps(&pos[(i + 4) * HMatDimLen + ii]);
+                vtemp4 = _mm256_fmadd_ps(vx, vRotMat4, vtemp4);
+                vRotMat5 = _mm256_loadu_ps(&pos[(i + 5) * HMatDimLen + ii]);
+                vtemp5 = _mm256_fmadd_ps(vx, vRotMat5, vtemp5);
+                vRotMat6 = _mm256_loadu_ps(&pos[(i + 6) * HMatDimLen + ii]);
+                vtemp6 = _mm256_fmadd_ps(vx, vRotMat6, vtemp6);
+                vRotMat7 = _mm256_loadu_ps(&pos[(i + 7) * HMatDimLen + ii]);
+                vtemp7 = _mm256_fmadd_ps(vx, vRotMat7, vtemp7);
+            }
+
+            __m256 sum0, sum1, sum2, sum01, sum11, sum21;
+            __m128 hi, lo, hi1, lo1, hi2, lo2, vy0, vy4;
+            sum0 = _mm256_hadd_ps(vtemp, vtemp1);//r0 r0 r1 r1 r0 r0 r1 r1
+            sum1 = _mm256_hadd_ps(vtemp2, vtemp3);
+            sum2 = _mm256_hadd_ps(sum0, sum1);//r0 r1 r2 r3 r0 r1 r2 r3
+            hi = _mm256_extractf128_ps(sum2, 1);
+            lo = _mm256_castps256_ps128(sum2);
+            vy0 = _mm_add_ps(lo, hi);// r0 r1 r2 r3
+            sum01 = _mm256_hadd_ps(vtemp4, vtemp5);
+            sum11 = _mm256_hadd_ps(vtemp6, vtemp7);
+            sum21 = _mm256_hadd_ps(sum01, sum11);
+            hi1 = _mm256_extractf128_ps(sum21, 1);
+            lo1 = _mm256_castps256_ps128(sum21);
+            vy4 = _mm_add_ps(lo1, hi1);// r4 r5 r6 r7
+
+            __m256 vy = _mm256_set_m128(vy4, vy0);
+
+            _mm256_storeu_ps(rotated_x + i + b*num_dimensions*k, vy);
+        }
+    }
+
+}
+
+//use random_rotation_precomputed_vectorized_unrolled2 for better performance
 void random_rotation_precomputed_vectorized_unrolled(float *x, int table_idx, int hash_rotation_idx, float *rotated_x) {
     for(int i = 0;i<HMatDimLen;i+=8){
         __m256 vtemp = _mm256_setzero_ps();
@@ -451,6 +523,12 @@ void rotations_precomputed(int table_idx, float *data_point, float *result_vec) 
     }
 }
 
+void rotations_precomputed_bulked(int table_idx, float *data_point, float *result_vec, int bulk_factor) {
+    for(int j = 0;j<k;j++) {
+            random_rotation_precomputed_vectorized_unrolled2_bulked(data_point, table_idx, j, &result_vec[j*num_dimensions],bulk_factor);
+    }
+}
+
 void rotations(int table_idx, float *data_point, float *result_vec) {
   float rotated_data[num_dimensions];
   for(int j = 0;j<k;j++) {
@@ -466,6 +544,25 @@ void rotations(int table_idx, float *data_point, float *result_vec) {
                         &result_vec[j*num_dimensions]);
     }
   }
+}
+
+float negative_inner_product(float * vec1, float * vec2){
+    __m256 sv1 = _mm256_loadu_ps(vec1);
+    __m256 sv2 = _mm256_loadu_ps(vec2);
+    __m256 result = _mm256_mul_ps(sv1,sv2);
+    for(int i = 8; i < num_dimensions;i+=8){
+        __m256 v1 = _mm256_loadu_ps(vec1+i);
+        __m256 v2 = _mm256_loadu_ps(vec2+i);
+        result = _mm256_fmadd_ps(v1,v2,result);
+    }
+    __m256 sum0, sum2;
+    __m128 hi, lo, vy;
+    sum0 = _mm256_hadd_ps(result, result);
+    sum2 = _mm256_hadd_ps(sum0, sum0);
+    hi = _mm256_extractf128_ps(sum2, 1);
+    lo = _mm256_castps256_ps128(sum2);
+    vy = _mm_add_ps(lo, hi);
+    return _mm_cvtss_f32(vy);
 }
 
 void print_random_rotation(int table_idx, int hash_idx){

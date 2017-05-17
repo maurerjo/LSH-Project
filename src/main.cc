@@ -194,7 +194,7 @@ int main(){
     init_rng();
     Stopwatch watch;
     cout << "start\n";
-    const int size = (1<<20);
+    const int size = (1<<15);
     const int dimension = 1<<3;
     const int table_size = (1<<26)-104009;
     const int num_queries = 1 << 12;
@@ -243,7 +243,7 @@ int main(){
         random_rotation_vec[i]=move(random_rotation);
     }
     //Set rotation vecs to be the same in C++ and C
-    /*for (int table_idx = 0; table_idx < num_table; table_idx++) {
+    for (int table_idx = 0; table_idx < num_table; table_idx++) {
       for (int rotation_idx = 0; rotation_idx < num_rotation; rotation_idx++) {
         for (int j = 0; j < k; j++) {
           for (int dim = 0; dim < dimension; dim++) {
@@ -251,7 +251,7 @@ int main(){
           }
         }
       }
-    }*/
+    }
     precomputeRotation();
     //print_random_rotation(0,0);
     cout << "Setup Tables" << endl;
@@ -330,7 +330,6 @@ int main(){
     vector<int> cp_c_result(num_queries);
     int queries_found = 0;
     for(int ii = 0; ii < num_queries; ii++){
-        float min_distance = -1000000.0;
         float min_c_distance = -1000000.0;
         bool found_correct = false;
         for(int i = 0; i<num_table;i++){
@@ -347,13 +346,7 @@ int main(){
               found_correct = true;
             }
             if(id_c!=-1) {
-                float current_distance = 0;
-                vector<float>::const_iterator firstd = data.begin() + id_c*dimension;
-                vector<float>::const_iterator lastd = data.begin() + (id_c+1)*dimension;
-                vector<float> neighbor_vec(firstd, lastd);
-                for(int j = 0; j<dimension;j++){
-                    current_distance+=queries[ii*dimension + j]*neighbor_vec[j];
-                }
+                float current_distance = negative_inner_product(&data[id_c*dimension],&queries[ii*dimension]);
                 if(current_distance>min_c_distance){
                     min_c_distance = current_distance;
                     cp_c_result[ii]=id_c;
@@ -369,6 +362,43 @@ int main(){
     cout << "Finished C queries in " << cp_c_time << " cycles" << endl;
     cout << "Finished C queries in " << (float)cp_c_time/(float)num_queries << " cycles/query" << endl;
     cout << "N * D * D = " << (num_queries * dimension * dimension) << endl;
+    cout << "Performance (flops/cycle) = " << (float)(num_queries * dimension * dimension * 2 * k * num_table)/(float)cp_c_time << endl;
+
+
+    cout << "Start bulked C queries" << endl;
+    Stopwatch cp_cb_query_watch;
+    vector<int> cp_cb_result(num_queries);
+    int bulk_factor = 16;
+    for(int ii = 0; ii < num_queries; ii+=bulk_factor){
+        vector<float> min_cb_distance(bulk_factor,-1000000.0);
+        for(int i = 0; i<num_table;i++){
+            float rotations_vec_cb[k*dimension*bulk_factor];
+            rotations_precomputed_bulked(i, &queries[ii*dimension], rotations_vec_cb, bulk_factor);
+
+            for(int b = 0; b<bulk_factor;b++) {
+                unsigned int result_c = 0;
+                crosspolytope(&rotations_vec_cb[b*k*dimension], &result_c, 1);
+
+                //cout <<" "<< result[0]<<" ";
+                int id_c = get_neighbor(i, result_c);
+                //cout << result_c << ", " << id_c << ", " << nnIDs[ii] <<endl;
+                if (id_c != -1) {
+                    float current_distance = negative_inner_product(&data[id_c*dimension],&queries[(ii+b)*dimension]);
+                    if(current_distance>min_cb_distance[b]){
+                        min_cb_distance[b] = current_distance;
+                        cp_cb_result[ii+b]=id_c;
+                    }
+                    //cout << i << ", " << ii << ", " << tables[i][result[0] % table_size]<< ", " << nnIDs[ii]<<endl;
+                }
+            }
+        }
+    }
+    long cp_cb_time=cp_cb_query_watch.GetElapsedTime();
+    cout << "Finished bulked C queries in " << cp_cb_time << " cycles" << endl;
+    cout << "Finished bulked C queries in " << (float)cp_cb_time/(float)num_queries << " cycles/query" << endl;
+    cout << "Bulked Performance (flops/cycle) = " << (float)(num_queries * dimension * dimension * 2 * k * num_table)/(float)cp_cb_time << endl;
+
+
 
     int correct_nnIDs=0;
     for(int i = 0; i< num_queries;i++){
@@ -382,6 +412,12 @@ int main(){
             correct_nnIDs_c++;
         }
     }
+    int correct_nnIDs_cb=0;
+    for(int i = 0; i< num_queries;i++){
+        if(cp_cb_result[i]==nnIDs[i]){
+            correct_nnIDs_cb++;
+        }
+    }
     int table_used=0;
     for(int i = 0; i < table_size;i++){
         if(tables[0][i]!=-1){
@@ -391,8 +427,10 @@ int main(){
     cout << 100*((float)correct_nnIDs)/((float)num_queries) << "% neighbours found"<<endl;
     cout << 100*((float)correct_nnIDs_c)/((float)num_queries) << "% neighbours found in C"<<endl;
     cout << 100*((float)queries_found)/((float)num_queries) << "% neighbours actually found in C"<<endl;
+    cout << 100*((float)correct_nnIDs_cb)/((float)num_queries) << "% neighbours found in bulked C"<<endl;
     cout << "Speed up to linear scan: " << (double)linear_time/(double)cp_time << endl;
     cout << "Speed up to C++: " << (double)cp_time/(double)cp_c_time << endl;
+    cout << "Speed up to C: " << (double)cp_c_time/(double)cp_cb_time << endl;
     cout << table_used << " table entries used"<<endl;
     cout << "Program ran for: " << endl;
     watch.PrintElapsedTime();
