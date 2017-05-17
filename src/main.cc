@@ -55,7 +55,7 @@ void rotations(int dimension, int num_rotation, vector<vector<vector<vector<floa
           vector<float> &data_vec, vector<vector<float> > &result, int k);
 
 /*generate random data
- * @size number of data points genetated
+ * @size number of data points generated
  * @dimension number of dimensions of each data point
  * */
 void createData(int size, int dimension, vector<float> &data){
@@ -194,10 +194,10 @@ int main(){
     init_rng();
     Stopwatch watch;
     cout << "start\n";
-    const int size = (1<<15);
-    const int dimension = 1<<4;
+    const int size = (1<<16);
+    const int dimension = 1<<7;
     const int table_size = (1<<26)-104009;
-    const int num_queries = 1 << 12;
+    const int num_queries = 1 << 13;
     vector<float> data(size*dimension);
     cout << "create Data Set:\n"<<size<<" data points\n"<<dimension<<" dimensions\n";
     createData(size, dimension, data);
@@ -217,7 +217,7 @@ int main(){
     //cross polytope
     cout << "Cross polytope hash" << endl;
     //cross polytope parameters
-    int k=5, num_table=17, num_rotation=3;
+    int k=8, num_table=10, num_rotation=2;
     //setup tables
     cout << "Create Tables" << endl;
     vector<vector<int> > tables(num_table);
@@ -253,6 +253,23 @@ int main(){
       }
     }
     precomputeRotation();
+    /*for (int table_idx = 0; table_idx < num_table; table_idx++) {
+        for (int j = 0; j < k; j++) {
+            print_random_rotation(table_idx,j);
+        }
+    }
+    for (int table_idx = 0; table_idx < num_table; table_idx++) {
+        for (int j = 0; j < k; j++) {
+            for (int rotation_idx = 0; rotation_idx < num_rotation; rotation_idx++) {
+                for (int dim = 0; dim < dimension; dim++) {
+                    cout << random_rotation_vec[table_idx][rotation_idx][j][dim] << ", ";
+                }
+                cout <<endl;
+            }
+            cout <<endl;
+        }
+        cout <<endl;
+    }*/
     //print_random_rotation(0,0);
     cout << "Setup Tables" << endl;
     for(int i = 0; i<num_table;i++){
@@ -264,10 +281,10 @@ int main(){
             rotations(dimension, num_rotation, random_rotation_vec, i, data_vec, rotations_vec,k);
             float rotations_vec_c[k*dimension];
             rotations_precomputed(i, &data[ii*dimension], rotations_vec_c);
-            //cout<<rotations_vec_c[0]<<", ";
-            //rotations(i, &data[ii*dimension], rotations_vec_c);
-            //cout<<rotations_vec_c[0]<<endl;
-            /*print_random_rotation(i,0);
+            /*cout<<rotations_vec_c[17]<<", ";
+            rotations(i, &data[ii*dimension], rotations_vec_c);
+            cout<<rotations_vec_c[17]<<endl;
+            print_random_rotation(i,0);
             print_random_rotation(i,1);
             print_random_rotation(i,2);
             print_random_rotation(i,3);

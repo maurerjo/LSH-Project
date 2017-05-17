@@ -146,14 +146,13 @@ void precomputeRotation(){
 
             for(int rotation_idx = 0; rotation_idx<num_rotations;rotation_idx++){
 
-
                 //multiplication with random +/-1 diag matrix
                 for(int i = 0; i<h_dim;i++){
                     for(int ii = 0; ii<h_dim;ii++){
                         RotMat[(table_idx*k+hash_rotation_idx)*h_dim*h_dim+i*h_dim+ii]*=rotation_vecs[table_idx * k * num_rotations * num_dimensions
                                                                                          + hash_rotation_idx * num_rotations * num_dimensions
                                                                                          + rotation_idx * num_dimensions
-                                                                                         + ii];
+                                                                                         + i];
                         tempRot[i*h_dim+ii] = RotMat[(table_idx*k+hash_rotation_idx)*h_dim*h_dim+i*h_dim+ii];
                     }
                 }//end random diag
@@ -164,7 +163,7 @@ void precomputeRotation(){
                     for(int ii = 0; ii<h_dim;ii++) {
                         float temp = 0;
                         for (int i3 = 0; i3 < h_dim; i3++) {
-                            temp += tempRot[ii * h_dim + i3] * HMatC[i * h_dim + i3];//hadamard matrix is it's own transpose
+                            temp += tempRot[ii * h_dim + i3] * HMatC[i3 * h_dim + i];//hadamard matrix is it's own transpose
                         }
                         RotMat[(table_idx * k + hash_rotation_idx) * h_dim * h_dim + i * h_dim + ii] = temp;
                     }
