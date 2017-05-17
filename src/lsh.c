@@ -215,7 +215,7 @@ int locality_sensitive_hash_optimized(float *data, int dim) {
     __m256i allONE = _mm256_set1_epi32(-1);
     __m256i best_idx = index;
     __m256i best_idx_neg = index;
-    for (int ii = 8; ii < dim; ii+=8) {
+    for (int ii = 8; ii < dim; ii+=8) {//negativ and positive for maximal ilp
         index = _mm256_add_epi32(index,iter);
         __m256 current = _mm256_loadu_ps(data+ii);
         __m256 current_neg = _mm256_sub_ps(ZERO,current);
@@ -240,11 +240,13 @@ int locality_sensitive_hash_optimized(float *data, int dim) {
     best_idx = _mm256_or_si256(best_idx,compare_i);//set all changed indexes to 0xFFFFFFFF
     __m256i xor_factor = _mm256_xor_si256(compare_i,allONE);
     __m256i vdim = _mm256_set1_epi32(dim);
-    best_idx_neg = _mm256_add_epi32(best_idx_neg,vdim);
+    best_idx_neg = _mm256_add_epi32(best_idx_neg,vdim);//+dim if negativ
     __m256i and_factor = _mm256_or_si256(xor_factor,best_idx_neg);
     best_idx = _mm256_and_si256(best_idx,and_factor);//set new best indexes
     best = _mm256_max_ps(best,best_neg);//set new best values
 
+
+    //bigger floats are still bigger when compare as ints
     __m256i best_i = _mm256_castps_si256(best);
     int value0 = _mm256_extract_epi32(best_i, 0);
     int value1 = _mm256_extract_epi32(best_i, 1);
@@ -262,6 +264,8 @@ int locality_sensitive_hash_optimized(float *data, int dim) {
     int idx5 = _mm256_extract_epi32(best_idx, 5);
     int idx6 = _mm256_extract_epi32(best_idx, 6);
     int idx7 = _mm256_extract_epi32(best_idx, 7);
+
+    //for maximum ilp, tree structure of compare
     int res2, res4, res6;
     if(value0>value1){
         res = idx0;
@@ -310,7 +314,7 @@ void crosspolytope(float *x, unsigned int *result, int result_size) {
     int cldim = (int)ceil(log2(num_dimensions))+1;
     for(int ii = 0; ii<k;ii++){
         result[i]<<=cldim;
-        result[i]|= locality_sensitive_hash_optimized(&x[ii * num_dimensions], num_dimensions);
+        result[i]|= locality_sensitive_hash(&x[ii * num_dimensions], num_dimensions);
     }
   }
 }
