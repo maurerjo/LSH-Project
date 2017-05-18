@@ -16,7 +16,7 @@ typedef chrono::high_resolution_clock HighResClock;
 typedef chrono::time_point<HighResClock> Time;
 typedef std::chrono::duration<double, typename HighResClock::period> Cycle;
 
- 
+
 int seed = 49628583;
 mt19937_64 gen(seed);
 
@@ -194,8 +194,8 @@ int main(){
     init_rng();
     Stopwatch watch;
     cout << "start\n";
-    const int size = (1<<16);
-    const int dimension = 1<<7;
+    const int size = (1<<15);
+    const int dimension = 1<<3;
     const int table_size = (1<<26)-104009;
     const int num_queries = 1 << 13;
     vector<float> data(size*dimension);
@@ -217,7 +217,8 @@ int main(){
     //cross polytope
     cout << "Cross polytope hash" << endl;
     //cross polytope parameters
-    int k=8, num_table=10, num_rotation=2;
+    int k=8, num_table=10, num_rotation=3;
+    cout << "k = "<<k <<", num_tables = "<<num_table<<", num_rotation = "<<num_rotation<<endl;
     //setup tables
     cout << "Create Tables" << endl;
     vector<vector<int> > tables(num_table);
@@ -241,7 +242,7 @@ int main(){
             random_rotation[r]=move(random_vec);
         }
         random_rotation_vec[i]=move(random_rotation);
-    }
+    }/*
     //Set rotation vecs to be the same in C++ and C
     for (int table_idx = 0; table_idx < num_table; table_idx++) {
       for (int rotation_idx = 0; rotation_idx < num_rotation; rotation_idx++) {
@@ -251,7 +252,7 @@ int main(){
           }
         }
       }
-    }
+    }*/
     precomputeRotation();
     /*for (int table_idx = 0; table_idx < num_table; table_idx++) {
         for (int j = 0; j < k; j++) {
@@ -351,13 +352,17 @@ int main(){
         bool found_correct = false;
         for(int i = 0; i<num_table;i++){
             float rotations_vec_c[k*dimension];
+            //minimal runtime: k * ((dim * dim / 16) + dim + 14)
             rotations_precomputed(i, &queries[ii*dimension], rotations_vec_c);
 
             unsigned int result_c = 0;
+            //minimal runtime: k * 12 / 8 * dim
             crosspolytope(rotations_vec_c, &result_c, 1);
 
             //cout <<" "<< result[0]<<" ";
             int id_c;
+            //latency RAM acces: 42 cycles + 51 ns latency (info Intel) = ~200 cycle
+            //latency L3 acces: 42 cycles (info Intel)
             id_c = get_neighbor(i, result_c);
             //cout << result_c << ", " << id_c << ", " << nnIDs[ii] <<endl;
             if (id_c == nnIDs[ii]) {
@@ -365,6 +370,7 @@ int main(){
             }
             if(id_c!=-1) {
                 float current_distance;
+                //minimal runtime: dim + 15
                 current_distance = negative_inner_product(&data[id_c*dimension],&queries[ii*dimension]);
                 if(current_distance>min_c_distance){
                     min_c_distance = current_distance;
@@ -380,30 +386,60 @@ int main(){
     long cp_c_time=cp_c_query_watch.GetElapsedTime();
     cout << "Finished C queries in " << cp_c_time << " cycles" << endl;
     cout << "Finished C queries in " << (float)cp_c_time/(float)num_queries << " cycles/query" << endl;
-    cout << "N * D * D = " << (num_queries * dimension * dimension) << endl;
-    cout << "Performance (flops/cycle) = " << num_queries *(float)(dimension * dimension * 2 * k * num_table)/(float)cp_c_time << endl;
-
+    cout << "Flops per Query: "<<endl;
+    int rot_flops = dimension * dimension * 2 * k * num_table;
+    cout << "rotation flops: "<<rot_flops<<endl;
+    int hash_flops = dimension * 5 * k * num_table;
+    cout << "hashing flops: "<<hash_flops<<endl;
+    int dist_flops = dimension * 2 *num_table;
+    cout << "distance calculation flops: "<<dist_flops<<endl;
+    cout << "Total flops: "<<rot_flops+hash_flops+dist_flops<<endl;
+    cout << "Performance (flops/cycle) = " << num_queries *(float)(rot_flops+hash_flops+dist_flops)/(float)cp_c_time << endl;
+    int readBytes = dimension* sizeof(float);//read query data
+    readBytes += num_table*k*dimension* sizeof(float); //read rotated data in hash function
+    readBytes += num_table*dimension* sizeof(float); //read data point for distance calculation
+    readBytes += num_table*64; //read entry from table (one cache line)
+    int randomRotationSize = num_table*k*dimension*dimension* sizeof(float)/8; //divided by 8 since it is probably in L1 Cache, but still here since significant volume
+    int readBytesUnbulked = readBytes + randomRotationSize; //read random rotation
+    cout << "Read bytes from RAM: "<<readBytes<<endl;
+    int WriteBytes = num_table*k*dimension* sizeof(float);//write rotated data
+    WriteBytes += num_table* sizeof(int);//write hash
+    WriteBytes += num_table* sizeof(int);//write table entry
+    cout << "Write bytes: "<<WriteBytes<<endl;
+    int bandwidth = 8;
+    cout << "Memory bandwith " <<bandwidth<<" bytes per cycle"<<endl;
+    cout << "Data transfer time per query: "<<((float)readBytesUnbulked+2*(float)WriteBytes)/(float)bandwidth<<endl;
+    int rotation_tt = k * ((dimension * dimension / 16) + dimension + 14);
+    int hash_tt = k * 12 / 8 * dimension;
+    int distance_tt = dimension + 15;
+    int table_tt = 200;
+    cout << "Minimal runtime of all parts per query: "<<(rotation_tt+hash_tt+distance_tt+table_tt+9)*num_table<<" cycles"<<endl;
 
     cout << "Start bulked C queries" << endl;
     Stopwatch cp_cb_query_watch;
-    vector<int> cp_cb_result(num_queries);
-    int bulk_factor = 1<<10;
+    vector<int> cp_cb_result(num_queries);//1 cycle per query ;P
+    int bulk_factor = 32;
     for(int ii = 0; ii < num_queries; ii+=bulk_factor){
         vector<float> min_cb_distance(bulk_factor,-1000000.0);
         for(int i = 0; i<num_table;i++){
             float rotations_vec_cb[k*dimension*bulk_factor];
+            //minimal runtime: k * ((dim * dim / 16) + dim + 10)
             rotations_precomputed_bulked(i, &queries[ii*dimension], rotations_vec_cb, bulk_factor);
 
             for(int b = 0; b<bulk_factor;b++) {
                 unsigned int result_c = 0;
+                //minimal runtime: k * 12 / 8 * dim
                 crosspolytope(&rotations_vec_cb[b*k*dimension], &result_c, 1);
 
                 //cout <<" "<< result[0]<<" ";
+                //latency RAM acces: 42 cycles + 51 ns latency (info Intel) = ~200 cycle
+                //latency L3 acces: 42 cycles (info Intel)
                 int id_c = get_neighbor(i, result_c);
                 //cout << result_c << ", " << id_c << ", " << nnIDs[ii] <<endl;
-                if (id_c != -1) {
+                if (id_c != -1) {//latency 4
+                    //minimal runtime: dim + 15
                     float current_distance = negative_inner_product(&data[id_c*dimension],&queries[(ii+b)*dimension]);
-                    if(current_distance>min_cb_distance[b]){
+                    if(current_distance>min_cb_distance[b]){//latency 4
                         min_cb_distance[b] = current_distance;
                         cp_cb_result[ii+b]=id_c;
                     }
@@ -415,8 +451,12 @@ int main(){
     long cp_cb_time=cp_cb_query_watch.GetElapsedTime();
     cout << "Finished bulked C queries in " << cp_cb_time << " cycles" << endl;
     cout << "Finished bulked C queries in " << (float)cp_cb_time/(float)num_queries << " cycles/query" << endl;
-    cout << "Bulked Performance (flops/cycle) = " << num_queries*(float)(dimension * dimension * 2 * k * num_table)/(float)cp_cb_time << endl;
-
+    cout << "Bulked Performance (flops/cycle) = " << num_queries*(float)(rot_flops+hash_flops+dist_flops)/(float)cp_cb_time << endl;
+    int rotation_t = k * ((dimension * dimension / 16) + dimension + 10);
+    int hash_t = k * 12 / 8 * dimension;
+    int distance_t = dimension + 15;
+    int table_t = 200;
+    cout << "Minimal runtime of all parts per query: "<<(rotation_t+hash_t+distance_t+table_t+9)*num_table<<" cycles"<<endl;
 
 
     int correct_nnIDs=0;
