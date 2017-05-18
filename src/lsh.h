@@ -19,6 +19,7 @@ void SetTables(int num_tables, int table_size);
 void SetRotationVecs(int num_tables, int num_rotations, int k, int num_dimensions);
 void set_rotation_vec_entry(int table_idx, int hash_rotation_idx, int rotation_idx_, int dim_idx, float value);
 void init_rng();
+void cleanup();
 
 float negative_inner_product(float * vec1, float * vec2);
 

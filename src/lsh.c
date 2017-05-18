@@ -164,6 +164,12 @@ void precomputeRotation(){
                     }
                 }//end random diag*/
             }
+            //transpose for better access pattern in avx
+            for(int i = 0; i<HMatVecLen;i++) {
+                for (int ii = 0; ii < HMatVecLen; ii++) {
+                    currentRot[i*HMatVecLen+ii]=tempRot[ii*HMatVecLen+i];
+                }
+            }
         }
     }
 }
@@ -376,7 +382,7 @@ void random_rotation_precomputed_vectorized_unrolled2(float *x, int table_idx, i
     // bigger than latency of fmadd (6) and
     // power of 2 to have good performance in adding up rows (using hadd)
     for(int i = 0;i<HMatVecLen;i+=8){
-        __m256 vx = _mm256_loadu_ps(&x[i]);
+        __m256 vx = _mm256_loadu_ps(x);
         __m256 vRotMat = _mm256_loadu_ps(&pos[i*HMatVecLen]);
         __m256 vRotMat1 = _mm256_loadu_ps(&pos[(i+1)*HMatVecLen]);
         __m256 vRotMat2 = _mm256_loadu_ps(&pos[(i+2)*HMatVecLen]);
@@ -395,6 +401,7 @@ void random_rotation_precomputed_vectorized_unrolled2(float *x, int table_idx, i
         __m256 vtemp7 = _mm256_mul_ps(vx,vRotMat7);
         //unroll factor: number of floats in __m256
         for(int ii = 8; ii<HMatVecLen;ii+=8){
+            vx = _mm256_loadu_ps(&x[ii]);
             vRotMat = _mm256_loadu_ps(&pos[i*HMatVecLen+ii]);
             vtemp = _mm256_fmadd_ps(vx,vRotMat,vtemp);//result for rotated_x[i]
             vRotMat1 = _mm256_loadu_ps(&pos[(i+1)*HMatVecLen+ii]);
@@ -462,7 +469,7 @@ void random_rotation_precomputed_vectorized_unrolled2_bulked(float *x, int table
         __m256 vRotMat7 = _mm256_loadu_ps(&pos[(i + 7) * HMatVecLen]);
         //load all vRotMat from L1 is 4 cycle (L1 cache bandwidth is 64b/c)
         for(int b = 0; b<bulk_factor;b++) {
-            __m256 vx = _mm256_loadu_ps(&x[i+b*num_dimensions]);//load dimension*4 bytes per rotation
+            __m256 vx = _mm256_loadu_ps(&x[b*num_dimensions]);//load dimension*4 bytes per rotation
             __m256 vtemp = _mm256_mul_ps(vx, vRotMat);
             __m256 vtemp1 = _mm256_mul_ps(vx, vRotMat1);
             __m256 vtemp2 = _mm256_mul_ps(vx, vRotMat2);
@@ -474,6 +481,7 @@ void random_rotation_precomputed_vectorized_unrolled2_bulked(float *x, int table
             //throughput mul = 2 => 4 cycle (possible during loading)
             //unroll factor: number of floats in __m256
             for (int ii = 8; ii < HMatVecLen; ii += 8) {
+                vx = _mm256_loadu_ps(&x[ii+b*num_dimensions]);//load dimension*4 bytes per rotation
                 __m256 vRotMati = _mm256_loadu_ps(&pos[i * HMatVecLen + ii]);
                 vtemp = _mm256_fmadd_ps(vx, vRotMati, vtemp);//result for rotated_x[i]
                 __m256 vRotMat1i = _mm256_loadu_ps(&pos[(i + 1) * HMatVecLen + ii]);
@@ -760,6 +768,13 @@ float negative_inner_product(float * vec1, float * vec2){
     lo = _mm256_castps256_ps128(sum2);
     vy = _mm_add_ps(lo, hi);//latency 3
     return _mm_cvtss_f32(vy);
+}
+
+void cleanup(){
+    free(RotMat);
+    free(HMatVecC);
+    free(tables);
+    free(rotation_vecs);
 }
 
 void print_random_rotation(int table_idx, int hash_idx){
