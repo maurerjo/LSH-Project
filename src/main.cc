@@ -195,7 +195,7 @@ int main(){
     Stopwatch watch;
     cout << "start\n";
     const int size = (1<<15);
-    const int dimension = 1<<3;
+    const int dimension = 1<<9;
     const int table_size = (1<<26)-104009;
     const int num_queries = 1 << 13;
     vector<float> data(size*dimension);
@@ -217,7 +217,7 @@ int main(){
     //cross polytope
     cout << "Cross polytope hash" << endl;
     //cross polytope parameters
-    int k=8, num_table=10, num_rotation=3;
+    int k=3, num_table=10, num_rotation=3;
     cout << "k = "<<k <<", num_tables = "<<num_table<<", num_rotation = "<<num_rotation<<endl;
     //setup tables
     cout << "Create Tables" << endl;
@@ -365,9 +365,6 @@ int main(){
             //latency L3 acces: 42 cycles (info Intel)
             id_c = get_neighbor(i, result_c);
             //cout << result_c << ", " << id_c << ", " << nnIDs[ii] <<endl;
-            if (id_c == nnIDs[ii]) {
-              found_correct = true;
-            }
             if(id_c!=-1) {
                 float current_distance;
                 //minimal runtime: dim + 15
@@ -378,9 +375,6 @@ int main(){
                 }
                 //cout << i << ", " << ii << ", " << tables[i][result[0] % table_size]<< ", " << nnIDs[ii]<<endl;
             }
-        }
-        if (found_correct) {
-          queries_found++;
         }
     }
     long cp_c_time=cp_c_query_watch.GetElapsedTime();
@@ -485,7 +479,6 @@ int main(){
     }
     cout << 100*((float)correct_nnIDs)/((float)num_queries) << "% neighbours found"<<endl;
     cout << 100*((float)correct_nnIDs_c)/((float)num_queries) << "% neighbours found in C"<<endl;
-    cout << 100*((float)queries_found)/((float)num_queries) << "% neighbours actually found in C"<<endl;
     cout << 100*((float)correct_nnIDs_cb)/((float)num_queries) << "% neighbours found in bulked C"<<endl;
     cout << "Speed up to linear scan: " << (double)linear_time/(double)cp_time << endl;
     cout << "Speed up to C++: " << (double)cp_time/(double)cp_c_time << endl;
