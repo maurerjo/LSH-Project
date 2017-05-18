@@ -403,7 +403,12 @@ int main(){
     int bandwidth = 8;
     cout << "Memory bandwith " <<bandwidth<<" bytes per cycle"<<endl;
     cout << "Data transfer time per query: "<<((float)readBytesUnbulked+2*(float)WriteBytes)/(float)bandwidth<<endl;
-    int rotation_tt = k * ((dimension * dimension / 16) + dimension + 14);
+    int rotation_tt;
+    if(dimension*dimension*k* sizeof(float)<(1<<18)){//to big for L2 Cache
+        rotation_tt = k * ((dimension * dimension / 16) + dimension + 14);
+    }else{//slower memory load
+        rotation_tt = k * ((dimension * dimension / 8) + dimension + 14);
+    }
     int hash_tt = k * 12 / 8 * dimension;
     int distance_tt = dimension + 15;
     int table_tt = 200;
