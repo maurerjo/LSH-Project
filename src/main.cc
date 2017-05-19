@@ -437,7 +437,7 @@ int main(){
         cout << "Start bulked C queries" << endl;
         Stopwatch cp_cb_query_watch;
         vector<int> cp_cb_result(num_queries);//1 cycle per query ;P
-        int bulk_factor = 32;
+        int bulk_factor = num_queries;
         for (int ii = 0; ii < num_queries; ii += bulk_factor) {
             vector<float> min_cb_distance(bulk_factor, -1000000.0);
             for (int i = 0; i < num_table; i++) {
