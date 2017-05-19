@@ -5,6 +5,7 @@
  *      Author: jonathan
  */
 
+#include <string.h>
 #include "immintrin.h"
 #include "lsh.h"
 #include <stdio.h>
@@ -768,6 +769,44 @@ void random_rotation(float *x, int table_idx, int hash_rotation_idx, int rotatio
     }
 }
 
+void random_rotation_ffht(float *x, int table_idx, int hash_rotation_idx, int rotation_idx, float *rotated_x) {
+    //if(x_size != random_vector.size()||x.size()!=rotated_x.size())
+    //    return;//TODO probably should throw error
+    //find next smaller power of 2 for hadamard pseudo random rotation
+
+    int log_dim = (int)floor(log2(num_dimensions));
+    int h_dim = 1<<log_dim;
+    if (h_dim != HMatVecLen) {
+      SetHMatVecC(num_dimensions);
+    }
+    
+    
+  //  FFHT(rotated_x, h_dim, log_dim);
+    //hadamard transform, in O(n^2), but can be done in O(n log(n)) and falconn does it that way
+    
+    /*
+    for(int i = 0;i<h_dim;i++){
+        for(int ii = 0; ii< h_dim; ii++){
+          rotated_x[i] += x[ii]*HMatVecC[i&ii];
+        }
+    }
+    */
+    
+    //for(int i = 0; i < h_dim; i++){
+    //    for(int ii = 0; ii < h_dim; ii++){
+    //          FFHT(&x[i], &rotated_x[ii], h_dim, log_dim);
+    //    }
+   // }
+    //FFHT(x, rotated_x, h_dim, log_dim);
+    fwht_transform(h_dim, x, rotated_x);
+    
+    float *random_vector = &rotation_vecs[table_idx * k * num_rotations * num_dimensions
+                                         + hash_rotation_idx * num_rotations * num_dimensions
+                                         + rotation_idx * num_dimensions];
+    for(int i = 0; i < num_dimensions; i++){
+        rotated_x[i] *= random_vector[i];
+    }
+}
 
 //runtime per query: k * random_rotation_precomputed_vectorized_unrolled2 =
 // k * ((dim * dim / 16) + dim + 14)
@@ -850,4 +889,44 @@ void print_random_rotation(int table_idx, int hash_idx){
         }
         printf("\n");
     }
+}
+
+//Additional function for testing Fast FHT
+void rotations_ffht(int table_idx, float *data_point, float *result_vec) {
+  float rotated_data[num_dimensions];
+  for(int j = 0;j<k;j++) {
+    for (int dim = 0; dim < num_dimensions; dim++) {
+      result_vec[j*num_dimensions + dim] = data_point[dim];
+    }
+    for(int r = 0; r < num_rotations; r++){
+        for (int dim = 0; dim < num_dimensions; dim++) {
+          rotated_data[dim] = result_vec[j*num_dimensions + dim];
+          result_vec[j*num_dimensions + dim] = 0;
+        }
+        random_rotation_ffht(rotated_data, table_idx, j, r,
+                        &result_vec[j*num_dimensions]);
+    }
+  }
+}
+
+void fwht_transform(int n, const float *src, float *dst)
+{
+    float adata[n];
+    float bdata[n];
+    float *a = adata;
+    float *b = bdata;
+    float *tmp;
+    memcpy(a, src, sizeof(float)*n);
+    
+    // Fast Walsh Hadamard Transform.
+    int i, j, s;
+    for (i = n>>1; i > 0; i>>=1) {
+        for (j = 0; j < n; j++) {
+            s = j/i%2;
+            b[j]=a[(s?-i:0)+j]+(s?-1:1)*a[(s?0:i)+j];
+        }
+        tmp = a; a = b; b = tmp;
+    }
+    
+    memcpy(dst, a, sizeof(float)*n);
 }
