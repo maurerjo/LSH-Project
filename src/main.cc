@@ -211,7 +211,7 @@ int main(){
         cout << "start\n";
         const int size = (1 << s);
         const int dimension = vd[d];
-        const int table_size = (1 << 26) - 104009;
+        const int table_size = (1 << 24) - 104009;
         const int num_queries = 1 << 10;
         vector<float> data(size * dimension);
         cout << "create Data Set:\n" << size << " data points\n" << dimension << " dimensions\n";
