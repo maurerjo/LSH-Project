@@ -441,7 +441,6 @@ void random_rotation_precomputed_vectorized_unrolled2(float *x, int table_idx, i
     }
 }
 
-
 //overall min runtime over all:     dim / 2 (loading x from RAM)
 //                                  + dim * dim / 16 - 4 (loading Rotmat from L1, dim * dim floats with beta = 64 B/c, keep the first 8 for initializing temp)
 //                                  + 14 (adding up rows)
@@ -499,7 +498,7 @@ void random_rotation_precomputed_vectorized_unrolled2_bulked(float *x, int table
                 __m256 vRotMat7i = _mm256_loadu_ps(&pos[(i + 7) * HMatVecLen + ii]);
                 vtemp7 = _mm256_fmadd_ps(vx, vRotMat7i, vtemp7);
             }// fmadd thoughput = 2 => 4 cycle per iteration, but min latency of fmadd => 6
-            // so more unrolling? no, since processor does it
+            // so more unrolling? Operational Intensity is 9/16 (for L1 Cache). At 1/2 peak performance could be achieved.
 
             __m256 sum0, sum1, sum2, sum01, sum11, sum21;
             __m128 hi, lo, hi1, lo1, hi2, lo2, vy0, vy4;
@@ -528,33 +527,116 @@ void random_rotation_precomputed_vectorized_unrolled2_bulked(float *x, int table
 void random_rotation8_precomputed_vectorized_unrolled2_bulked(float *x, int table_idx, int hash_rotation_idx, float *rotated_x, int bulk_factor) {
     float * pos = &RotMat[table_idx * k * HMatVecLen * HMatVecLen
                           + hash_rotation_idx * HMatVecLen * HMatVecLen];
-        __m256 vRotMat = _mm256_loadu_ps(pos);
-        __m256 vRotMat1 = _mm256_loadu_ps(&pos[HMatVecLen]);
-        __m256 vRotMat2 = _mm256_loadu_ps(&pos[(2) * HMatVecLen]);
-        __m256 vRotMat3 = _mm256_loadu_ps(&pos[(3) * HMatVecLen]);
-        __m256 vRotMat4 = _mm256_loadu_ps(&pos[(4) * HMatVecLen]);
-        __m256 vRotMat5 = _mm256_loadu_ps(&pos[(5) * HMatVecLen]);
-        __m256 vRotMat6 = _mm256_loadu_ps(&pos[(6) * HMatVecLen]);
-        __m256 vRotMat7 = _mm256_loadu_ps(&pos[(7) * HMatVecLen]);
+    __m256 vRotMat = _mm256_loadu_ps(pos);
+    __m256 vRotMat1 = _mm256_loadu_ps(&pos[HMatVecLen]);
+    __m256 vRotMat2 = _mm256_loadu_ps(&pos[(2) * HMatVecLen]);
+    __m256 vRotMat3 = _mm256_loadu_ps(&pos[(3) * HMatVecLen]);
+    __m256 vRotMat4 = _mm256_loadu_ps(&pos[(4) * HMatVecLen]);
+    __m256 vRotMat5 = _mm256_loadu_ps(&pos[(5) * HMatVecLen]);
+    __m256 vRotMat6 = _mm256_loadu_ps(&pos[(6) * HMatVecLen]);
+    __m256 vRotMat7 = _mm256_loadu_ps(&pos[(7) * HMatVecLen]);
+    for(int b = 0; b<bulk_factor;b+=2) {
+        __m256 vx = _mm256_loadu_ps(&x[b*num_dimensions]);
+        __m256 vx0 = _mm256_loadu_ps(&x[(b+1)*num_dimensions]);
+        __m256 vtemp = _mm256_mul_ps(vx, vRotMat);
+        __m256 vtemp1 = _mm256_mul_ps(vx, vRotMat1);
+        __m256 vtemp2 = _mm256_mul_ps(vx, vRotMat2);
+        __m256 vtemp3 = _mm256_mul_ps(vx, vRotMat3);
+        __m256 vtemp4 = _mm256_mul_ps(vx, vRotMat4);
+        __m256 vtemp5 = _mm256_mul_ps(vx, vRotMat5);
+        __m256 vtemp6 = _mm256_mul_ps(vx, vRotMat6);
+        __m256 vtemp7 = _mm256_mul_ps(vx, vRotMat7);
+        __m256 vtemp0 = _mm256_mul_ps(vx0, vRotMat);
+        __m256 vtemp10 = _mm256_mul_ps(vx0, vRotMat1);
+        __m256 vtemp20 = _mm256_mul_ps(vx0, vRotMat2);
+        __m256 vtemp30 = _mm256_mul_ps(vx0, vRotMat3);
+        __m256 vtemp40 = _mm256_mul_ps(vx0, vRotMat4);
+        __m256 vtemp50 = _mm256_mul_ps(vx0, vRotMat5);
+        __m256 vtemp60 = _mm256_mul_ps(vx0, vRotMat6);
+        __m256 vtemp70 = _mm256_mul_ps(vx0, vRotMat7);
+
+        __m256 sum0, sum1, sum2, sum01, sum11, sum21;
+        __m128 hi, lo, hi1, lo1, hi2, lo2, vy0, vy4;
+        sum0 = _mm256_hadd_ps(vtemp, vtemp1);//r0 r0 r1 r1 r0 r0 r1 r1
+        sum1 = _mm256_hadd_ps(vtemp2, vtemp3);
+        sum2 = _mm256_hadd_ps(sum0, sum1);//r0 r1 r2 r3 r0 r1 r2 r3
+        hi = _mm256_extractf128_ps(sum2, 1);
+        lo = _mm256_castps256_ps128(sum2);
+        vy0 = _mm_add_ps(lo, hi);// r0 r1 r2 r3
+        sum01 = _mm256_hadd_ps(vtemp4, vtemp5);
+        sum11 = _mm256_hadd_ps(vtemp6, vtemp7);
+        sum21 = _mm256_hadd_ps(sum01, sum11);
+        hi1 = _mm256_extractf128_ps(sum21, 1);
+        lo1 = _mm256_castps256_ps128(sum21);
+        vy4 = _mm_add_ps(lo1, hi1);// r4 r5 r6 r7
+
+        __m256 vy = _mm256_set_m128(vy4, vy0);
+
+        _mm256_storeu_ps(rotated_x + b*num_dimensions*k, vy);
+
+        __m256 sum00, sum10, sum20, sum010, sum110, sum210;
+        __m128 hi0, lo0, hi10, lo10, hi20, lo20, vy00, vy40;
+        sum00 = _mm256_hadd_ps(vtemp0, vtemp10);//r0 r0 r1 r1 r0 r0 r1 r1
+        sum10 = _mm256_hadd_ps(vtemp20, vtemp30);
+        sum20 = _mm256_hadd_ps(sum00, sum10);//r0 r1 r2 r3 r0 r1 r2 r3
+        hi0 = _mm256_extractf128_ps(sum20, 1);
+        lo0 = _mm256_castps256_ps128(sum20);
+        vy00 = _mm_add_ps(lo0, hi0);// r0 r1 r2 r3
+        sum010 = _mm256_hadd_ps(vtemp40, vtemp50);
+        sum110 = _mm256_hadd_ps(vtemp60, vtemp70);
+        sum210 = _mm256_hadd_ps(sum010, sum110);
+        hi10 = _mm256_extractf128_ps(sum210, 1);
+        lo10 = _mm256_castps256_ps128(sum210);
+        vy40 = _mm_add_ps(lo10, hi10);// r4 r5 r6 r7
+
+        __m256 vy2 = _mm256_set_m128(vy40, vy00);
+
+        _mm256_storeu_ps(rotated_x + (b+1)*num_dimensions*k, vy2);
+    }
+}
+
+
+void random_rotation_precomputed_vectorized_unrolled2_bulked2(float *x, int table_idx, int hash_rotation_idx, float *rotated_x, int bulk_factor) {
+    float * pos = &RotMat[table_idx * k * HMatVecLen * HMatVecLen
+                          + hash_rotation_idx * HMatVecLen * HMatVecLen];
+    //unroll factor: multiple of number of floats in __m256 and
+    // power of 2 to have good performance in adding up rows (using hadd)
+    for (int i = 0; i < HMatVecLen; i += 4) {
+        __m256 vRotMat = _mm256_loadu_ps(&pos[i * HMatVecLen]);
+        __m256 vRotMat1 = _mm256_loadu_ps(&pos[(i + 1) * HMatVecLen]);
+        __m256 vRotMat2 = _mm256_loadu_ps(&pos[(i + 2) * HMatVecLen]);
+        __m256 vRotMat3 = _mm256_loadu_ps(&pos[(i + 3) * HMatVecLen]);
+        //load all vRotMat from L1 is 4 cycle (L1 cache bandwidth is 64b/c)
         for(int b = 0; b<bulk_factor;b+=2) {
-            __m256 vx = _mm256_loadu_ps(&x[b*num_dimensions]);
-            __m256 vx0 = _mm256_loadu_ps(&x[(b+1)*num_dimensions]);
+            __m256 vx = _mm256_loadu_ps(&x[b*num_dimensions]);//load dimension*4 bytes per rotation
+            __m256 vx1 = _mm256_loadu_ps(&x[(b+1)*num_dimensions]);
             __m256 vtemp = _mm256_mul_ps(vx, vRotMat);
             __m256 vtemp1 = _mm256_mul_ps(vx, vRotMat1);
             __m256 vtemp2 = _mm256_mul_ps(vx, vRotMat2);
             __m256 vtemp3 = _mm256_mul_ps(vx, vRotMat3);
-            __m256 vtemp4 = _mm256_mul_ps(vx, vRotMat4);
-            __m256 vtemp5 = _mm256_mul_ps(vx, vRotMat5);
-            __m256 vtemp6 = _mm256_mul_ps(vx, vRotMat6);
-            __m256 vtemp7 = _mm256_mul_ps(vx, vRotMat7);
-            __m256 vtemp0 = _mm256_mul_ps(vx0, vRotMat);
-            __m256 vtemp10 = _mm256_mul_ps(vx0, vRotMat1);
-            __m256 vtemp20 = _mm256_mul_ps(vx0, vRotMat2);
-            __m256 vtemp30 = _mm256_mul_ps(vx0, vRotMat3);
-            __m256 vtemp40 = _mm256_mul_ps(vx0, vRotMat4);
-            __m256 vtemp50 = _mm256_mul_ps(vx0, vRotMat5);
-            __m256 vtemp60 = _mm256_mul_ps(vx0, vRotMat6);
-            __m256 vtemp70 = _mm256_mul_ps(vx0, vRotMat7);
+            __m256 vtemp4 = _mm256_mul_ps(vx1, vRotMat);
+            __m256 vtemp5 = _mm256_mul_ps(vx1, vRotMat1);
+            __m256 vtemp6 = _mm256_mul_ps(vx1, vRotMat2);
+            __m256 vtemp7 = _mm256_mul_ps(vx1, vRotMat3);
+            //throughput mul = 2 => 4 cycle (possible during loading)
+            //unroll factor: number of floats in __m256
+            for (int ii = 8; ii < HMatVecLen; ii += 8) {
+                vx = _mm256_loadu_ps(&x[ii+b*num_dimensions]);//load dimension*4 bytes per rotation
+                vx1 = _mm256_loadu_ps(&x[ii+(b+1)*num_dimensions]);//load dimension*4 bytes per rotation
+                __m256 vRotMati = _mm256_loadu_ps(&pos[i * HMatVecLen + ii]);
+                vtemp = _mm256_fmadd_ps(vx, vRotMati, vtemp);//result for rotated_x[i]
+                __m256 vRotMat1i = _mm256_loadu_ps(&pos[(i + 1) * HMatVecLen + ii]);
+                vtemp1 = _mm256_fmadd_ps(vx, vRotMat1i, vtemp1);//result for rotated_x[i+1]
+                __m256 vRotMat2i = _mm256_loadu_ps(&pos[(i + 2) * HMatVecLen + ii]);
+                vtemp2 = _mm256_fmadd_ps(vx, vRotMat2i, vtemp2);
+                __m256 vRotMat3i = _mm256_loadu_ps(&pos[(i + 3) * HMatVecLen + ii]);
+                vtemp3 = _mm256_fmadd_ps(vx, vRotMat3i, vtemp3);
+                vtemp4 = _mm256_fmadd_ps(vx1, vRotMati, vtemp4);
+                vtemp5 = _mm256_fmadd_ps(vx1, vRotMat1i, vtemp5);
+                vtemp6 = _mm256_fmadd_ps(vx1, vRotMat2i, vtemp6);
+                vtemp7 = _mm256_fmadd_ps(vx1, vRotMat3i, vtemp7);
+            }// fmadd thoughput = 2 => 4 cycle per iteration, but min latency of fmadd => 6
+            // so more unrolling? Operational Intensity is 9/16 (for L1 Cache). At 1/2 peak performance could be achieved.
 
             __m256 sum0, sum1, sum2, sum01, sum11, sum21;
             __m128 hi, lo, hi1, lo1, hi2, lo2, vy0, vy4;
@@ -570,32 +652,14 @@ void random_rotation8_precomputed_vectorized_unrolled2_bulked(float *x, int tabl
             hi1 = _mm256_extractf128_ps(sum21, 1);
             lo1 = _mm256_castps256_ps128(sum21);
             vy4 = _mm_add_ps(lo1, hi1);// r4 r5 r6 r7
+            //2 hadd latencies (probably 6) + 1 add latency (4)
 
-            __m256 vy = _mm256_set_m128(vy4, vy0);
-
-            _mm256_storeu_ps(rotated_x + b*num_dimensions*k, vy);
-
-            __m256 sum00, sum10, sum20, sum010, sum110, sum210;
-            __m128 hi0, lo0, hi10, lo10, hi20, lo20, vy00, vy40;
-            sum00 = _mm256_hadd_ps(vtemp0, vtemp10);//r0 r0 r1 r1 r0 r0 r1 r1
-            sum10 = _mm256_hadd_ps(vtemp20, vtemp30);
-            sum20 = _mm256_hadd_ps(sum00, sum10);//r0 r1 r2 r3 r0 r1 r2 r3
-            hi0 = _mm256_extractf128_ps(sum20, 1);
-            lo0 = _mm256_castps256_ps128(sum20);
-            vy00 = _mm_add_ps(lo0, hi0);// r0 r1 r2 r3
-            sum010 = _mm256_hadd_ps(vtemp40, vtemp50);
-            sum110 = _mm256_hadd_ps(vtemp60, vtemp70);
-            sum210 = _mm256_hadd_ps(sum010, sum110);
-            hi10 = _mm256_extractf128_ps(sum210, 1);
-            lo10 = _mm256_castps256_ps128(sum210);
-            vy40 = _mm_add_ps(lo10, hi10);// r4 r5 r6 r7
-
-            __m256 vy2 = _mm256_set_m128(vy40, vy00);
-
-            _mm256_storeu_ps(rotated_x + (b+1)*num_dimensions*k, vy2);
+            _mm_storeu_ps(rotated_x + i + b*num_dimensions*k, vy0);//store dimension*4 bytes per rotation
+            _mm_storeu_ps(rotated_x + i + (b+1)*num_dimensions*k, vy4);//store dimension*4 bytes per rotation
         }
     }
 
+}
 
 
 //use random_rotation_precomputed_vectorized_unrolled2 for better performance
@@ -724,7 +788,7 @@ void rotations_precomputed_bulked(int table_idx, float *data_point, float *resul
         }
     }else {*/
         for (int j = 0; j < k; j++) {
-            random_rotation_precomputed_vectorized_unrolled2_bulked(data_point, table_idx, j,
+            random_rotation_precomputed_vectorized_unrolled2_bulked2(data_point, table_idx, j,
                                                                     &result_vec[j * num_dimensions], bulk_factor);
         }
     //}
