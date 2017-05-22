@@ -29,6 +29,9 @@ void run_queries(float * queries, int num_queries, int * result);
 void precomputeRotation();
 void rotations_precomputed(int table_idx, float *data_point, float *result_vec);
 void random_rotation_precomputed(float *x, int table_idx, int hash_rotation_idx, float *rotated_x);
+void random_rotation_ffht(float *x, int table_idx, int hash_rotation_idx, int rotation_idx, float *rotated_x);
+void rotations_ffht(int table_idx, float *data_point, float *result_vec);
+void fwht_transform(int n, const float *src, float *dst);
 
 void rotations_precomputed_bulked(int table_idx, float *data_point, float *result_vec, int bulk_factor);
 
