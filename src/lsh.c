@@ -209,7 +209,7 @@ int locality_sensitive_hash(float *data, int dim) {
 
 
 //load time: load 4 * dim bytes = dim/2 cycle
-//runtime: 12 / 8 * dim cycle
+//runtime: 13 / 8 * dim cycle
 //flops: 5 * dim (only counting compares and max and sub, since the other are integer operations)
 //Notice we do more flops, but improve ilp by that and decrease runtime 8-fold using avx
 //Performance: 5/1.5 flops/cycle
@@ -226,7 +226,7 @@ int locality_sensitive_hash_optimized(float *data, int dim) {
     __m256i best_idx_neg = index;
     for (int ii = 8; ii < dim; ii+=8) {//negativ and positive for maximal ilp
         index = _mm256_add_epi32(index,iter);
-        __m256 current = _mm256_loadu_ps(data+ii);
+        __m256 current = _mm256_loadu_ps(data+ii);//0.25 cycle cpu occupied, latency 1, but can probably be preloaded by processor
         __m256 current_neg = _mm256_sub_ps(ZERO,current);//0.5 cycle cpu occupied, 4 latency
         __m256 compare = _mm256_cmp_ps(best, current, 1);//0.5 cycle cpu occupied
         __m256i compare_i = _mm256_castps_si256(compare);
@@ -243,7 +243,7 @@ int locality_sensitive_hash_optimized(float *data, int dim) {
         __m256i and_factor_neg = _mm256_or_si256(xor_factor_neg,index);//1 latency
         best_idx_neg = _mm256_and_si256(best_idx_neg,and_factor_neg);//set new best indexes, 1 latency
         best_neg = _mm256_max_ps(best_neg,current_neg);//set new best negative values, 4 latency (not part of longest chain)
-    }//~8 cycle worth of operations, longest latency chain is 12 cycle
+    }//~8 cycle worth of operations, longest latency chain is 13 cycle
     __m256 compare = _mm256_cmp_ps(best, best_neg, 1);//4 latency
     __m256i compare_i = _mm256_castps_si256(compare);//0 latency
     best_idx = _mm256_or_si256(best_idx,compare_i);//set all changed indexes to 0xFFFFFFFF, 1 latency

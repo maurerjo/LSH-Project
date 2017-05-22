@@ -474,11 +474,13 @@ int main(){
         cout << "Bulked Performance (flops/cycle) = "
              << num_queries * (float) (rot_flops + hash_flops + dist_flops) / (float) cp_cb_time << endl;
         int rotation_t = k * ((dimension * dimension / 16) + dimension + 10);
-        int hash_t = k * 12 / 8 * dimension;
+        int hash_t = k * 13 / 8 * dimension;
         int distance_t = dimension + 15;
-        int table_t = 200;
+        int table_t = 42;//maybe not for every table in RAM so 42 instead of 200
         cout << "Minimal runtime of all parts per query: "
              << (rotation_t + hash_t + distance_t + table_t + 9) * num_table << " cycles" << endl;
+        cout << "Maximal performance achievable: "
+             << (float)(rot_flops + hash_flops + dist_flops)/(float)((rotation_t + hash_t + distance_t + table_t + 9)*num_table) << "flops/cycles" << endl;
 
 
         int correct_nnIDs = 0;
