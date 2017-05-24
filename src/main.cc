@@ -9,6 +9,7 @@
 #include <vector>
 #include <algorithm>
 #include <chrono>
+#include "data_handling.h"
 #include "lsh.h"
 
 using namespace std;
@@ -16,6 +17,7 @@ typedef chrono::high_resolution_clock HighResClock;
 typedef chrono::time_point<HighResClock> Time;
 typedef std::chrono::duration<double, typename HighResClock::period> Cycle;
 
+const bool save_data = true;
 
 int seed = 49628583;
 mt19937_64 gen(seed);
@@ -191,6 +193,7 @@ void random_rotation(vector<float> &x, vector<float>  &random_vector, vector<flo
 }
 
 int main(){
+    bool data_saved_this_run = false, queries_saved_this_run = false;
     init_rng();
     vector<int> vd(8);
     vector<int> vk(8);
@@ -206,7 +209,7 @@ int main(){
     vk[6]=1;
     vk[7]=1;
     for(int d = 0;d<8;d++)
-        for(int s = 14;s<25;s+=2){
+        for(int s = 20;s<21;s+=2){
         Stopwatch watch;
         cout << "start\n";
         const int size = (1 << s);
@@ -217,10 +220,18 @@ int main(){
         cout << "create Data Set:\n" << size << " data points\n" << dimension << " dimensions\n";
         createData(size, dimension, data);
         SetData(data.data(), size, dimension);
+        if (save_data && !data_saved_this_run) {
+          data::SaveData("data/data_points", data, dimension);
+          data_saved_this_run = true;
+        }
         cout << "finished creating data\n\n";
         vector<float> queries(num_queries * dimension);
         cout << "create " << num_queries << " queries\n";
         createQueries(num_queries, dimension, queries, size, data);
+        if (save_data && !queries_saved_this_run) {
+          data::SaveData("data/query_points", queries, dimension);
+          queries_saved_this_run = true;
+        }
         cout << "finished creating queries\n\n";
         vector<int> nnIDs(num_queries);
         cout << "calculate nearest neighbour via linear scan\n";

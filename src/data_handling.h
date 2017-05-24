@@ -16,7 +16,7 @@ namespace data {
 
 void SaveData(std::string filename, std::vector<float> data, int dimensions) {
   std::ofstream file(filename);
-  int num_points = data.size / dimensions;
+  int num_points = data.size() / dimensions;
   file << num_points << " " << dimensions << std::endl;
   for (int i = 0; i  < num_points; i++) {
     for (int j = 0; j < dimensions; j++) {
