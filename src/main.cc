@@ -197,7 +197,7 @@ int main(){
     int i = 0;
     for(int d = 8;d<1025;d<<=1)
         vd[i++]=d;
-    vk[0]=6;
+    vk[0]=7;
     vk[1]=5;
     vk[2]=4;
     vk[3]=3;
@@ -205,8 +205,8 @@ int main(){
     vk[5]=2;
     vk[6]=1;
     vk[7]=1;
-    for(int s = 14;s<25;s+=2)
-    for(int d = 0;d<8;d++) {
+    for(int d = 0;d<8;d++)
+        for(int s = 14;s<25;s+=2){
         Stopwatch watch;
         cout << "start\n";
         const int size = (1 << s);
@@ -494,7 +494,7 @@ int main(){
         cout << "Start bulked C queries" << endl;
         Stopwatch cp_cb_query_watch;
         vector<int> cp_cb_result(num_queries);//1 cycle per query ;P
-        int bulk_factor = num_queries;
+        int bulk_factor = 1<<5;
         for (int ii = 0; ii < num_queries; ii += bulk_factor) {
             vector<float> min_cb_distance(bulk_factor, -1000000.0);
             for (int i = 0; i < num_table; i++) {
@@ -528,16 +528,16 @@ int main(){
         long cp_cb_time = cp_cb_query_watch.GetElapsedTime();
         cout << "Finished bulked C queries in " << cp_cb_time << " cycles" << endl;
         cout << "Finished bulked C queries in " << (float) cp_cb_time / (float) num_queries << " cycles/query" << endl;
-        cout << "Bulked Performance (flops/cycle) = "
+        cout << "Batched Performance (flops/cycle) = "
              << num_queries * (float) (rot_flops + hash_flops + dist_flops) / (float) cp_cb_time << endl;
         int rotation_t = k * ((dimension * dimension / 16) + dimension + 10);
-        int hash_t = k * 13 / 8 * dimension;
+        int hash_t = k * 12 / 8 * dimension;
         int distance_t = dimension + 15;
         int table_t = 42;//maybe not for every table in RAM so 42 instead of 200
         cout << "Minimal runtime of all parts per query: "
-             << (rotation_t + hash_t + distance_t + table_t + 9) * num_table << " cycles" << endl;
+             << (rotation_t + hash_t + distance_t) * num_table << " cycles" << endl;
         cout << "Maximal performance achievable: "
-             << (float)(rot_flops + hash_flops + dist_flops)/(float)((rotation_t + hash_t + distance_t + table_t + 9)*num_table) << "flops/cycles" << endl;
+             << (float)(rot_flops + hash_flops + dist_flops)/(float)((rotation_t + hash_t + distance_t)*num_table) << "flops/cycles" << endl;
 
 
         int correct_nnIDs = 0;

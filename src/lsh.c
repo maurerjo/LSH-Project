@@ -277,42 +277,36 @@ int locality_sensitive_hash_optimized(float *data, int dim) {
 
     //for maximum ilp, tree structure of compare
     int res2, res4, res6;
-    if(value0>value1){//latency 4
-        res = idx0;
-    }else{
+    res = idx0;
+    res2 = idx2;
+    res4 = idx4;
+    res6 = idx6;
+
+    if(value0<value1){//latency 4
         res = idx1;
         value0 = value1;
     }
-    if(value2>value3){
-        res2 = idx2;
-    }else{
+    if(value2<value3){
         res2 = idx3;
         value2 = value3;
     }
-    if(value4>value5){
-        res4 = idx4;
-    }else{
+    if(value4<value5){
         res4 = idx5;
         value4 = value5;
     }
-    if(value6>value7){
-        res6 = idx6;
-    }else{
+    if(value6<value7){
         res6 = idx7;
         value6 = value7;
     }
-    if(value0>value2){//latency 4
-    }else{
+    if(value0<value2){//latency 4
         res = res2;
         value0 = value2;
     }
-    if(value4>value6){
-    }else{
+    if(value4<value6){
         res4 = res6;
         value4 = value6;
     }
-    if(value0>value4){//latency 4
-    }else{
+    if(value0<value4){//latency 4
         res = res4;
     }
     return res;
@@ -499,8 +493,8 @@ void random_rotation_precomputed_vectorized_unrolled2_bulked(float *x, int table
                 __m256 vRotMat7i = _mm256_loadu_ps(&pos[(i + 7) * HMatVecLen + ii]);
                 vtemp7 = _mm256_fmadd_ps(vx, vRotMat7i, vtemp7);
             }// fmadd thoughput = 2 => 4 cycle per iteration, but min latency of fmadd => 6
-            // so more unrolling? Operational Intensity is 9/16 (for L1 Cache). At 1/2 peak performance could be achieved.
-
+            // so more unrolling? Operational Intensity is 4/9 (for L1 Cache). At 1/2 peak performance could be achieved.
+            //see random_rotation_precomputed_vectorized_unrolled2_bulked for more optimizations
             __m256 sum0, sum1, sum2, sum01, sum11, sum21;
             __m128 hi, lo, hi1, lo1, hi2, lo2, vy0, vy4;
             sum0 = _mm256_hadd_ps(vtemp, vtemp1);//r0 r0 r1 r1 r0 r0 r1 r1
@@ -609,7 +603,7 @@ void random_rotation_precomputed_vectorized_unrolled2_bulked2(float *x, int tabl
                 vtemp6 = _mm256_fmadd_ps(vx1, vRotMat2i, vtemp6);
                 vtemp7 = _mm256_fmadd_ps(vx1, vRotMat3i, vtemp7);
             }// fmadd thoughput = 2 => 4 cycle per iteration, but min latency of fmadd => 6
-            // so more unrolling? Operational Intensity is 9/16 (for L1 Cache). At 1/2 peak performance could be achieved.
+            // Operational Intensity is 2*8*8/6*4*8 = 2/3 (for L1 Cache). At 1/2 peak performance can be achieved.
 
             __m256 sum0, sum1, sum2, sum01, sum11, sum21;
             __m128 hi, lo, hi1, lo1, hi2, lo2, vy0, vy4;
@@ -848,6 +842,7 @@ float negative_inner_product(float * vec1, float * vec2){
 void cleanup(){
     free(RotMat);
     free(HMatVecC);
+    HMatVecLen = 0;
     free(tables);
     free(rotation_vecs);
 }
