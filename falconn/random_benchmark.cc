@@ -3,6 +3,8 @@
 #include <iostream>
 #include <memory>
 #include <stdexcept>
+#include <string>
+#include <fstream>
 
 #include "falconn/eigen_wrapper.h"
 #include "falconn/lsh_nn_table.h"
@@ -18,6 +20,37 @@ using std::fixed;
 using std::scientific;
 using std::unique_ptr;
 using std::vector;
+
+namespace data {
+
+void SaveData(std::string filename, vector<float> data, int dimensions) {
+  std::ofstream file(filename);
+  int num_points = data.size() / dimensions;
+  file << num_points << " " << dimensions << std::endl;
+  for (int i = 0; i  < num_points; i++) {
+    for (int j = 0; j < dimensions; j++) {
+      file << data[i * dimensions + j] << " ";
+    }
+    file << std::endl;
+  }
+  file.flush();
+  file.close();
+}
+
+vector<float> LoadData(std::string filename) {
+  std::ifstream file(filename);
+  vector<float> data;
+  int num_points, dimensions;
+  file >> num_points >> dimensions;
+  data.resize(num_points * dimensions);
+  for (int i = 0; i < num_points * dimensions; i++) {
+    file >> data[i];
+  }
+  file.close();
+  return data;
+}
+
+}
 
 using falconn::construct_table;
 using falconn::DenseVector;
@@ -100,6 +133,7 @@ void run_experiment(LSHNearestNeighborTable<PointType>* table,
 }
 
 int main() {
+  const bool load_data = true;
   try {
     const char* sepline =
         "----------------------------------------------------------------------"
@@ -107,7 +141,7 @@ int main() {
 
     // Data set parameters
     int n = 1000000;                  // number of data points
-    int d = 128;                      // dimension
+    int d = 8;                      // dimension
     int num_queries = 1000;           // number of query points
     double r = std::sqrt(2.0) / 2.0;  // distance to planted query
     uint64_t seed = 119417657;
@@ -130,7 +164,7 @@ int main() {
     std::mt19937_64 gen(seed);
     std::normal_distribution<float> dist_normal(0.0, 1.0);
     std::uniform_int_distribution<int> dist_uniform(0, n - 1);
-
+    
     // Generate random data
     cout << "Generating data set ..." << endl;
     std::vector<Vec> data;
@@ -163,6 +197,28 @@ int main() {
 
       queries.push_back(q);
     }
+    
+    if (load_data) {
+      vector<float> data_points = data::LoadData("data/data_points");
+      n = data_points.size() / d;
+      data.clear();
+      for (int i = 0; i < data_points.size() / d; i++) {
+		  Vec v(d);
+		  for (int j = 0; j < d; j++) {
+			  v[j] = data_points[i * d + j];
+		  }
+		  data.push_back(v);
+	  }
+	  vector<float> query_points = data::LoadData("data/query_points");
+      queries.clear();
+      for (int i = 0; i < query_points.size() / d; i++) {
+		  Vec v(d);
+		  for (int j = 0; j < d; j++) {
+			  v[j] = query_points[i * d + j];
+		  }
+		  queries.push_back(v);
+	  }
+	}
 
     // Compute true nearest neighbors
     cout << "Computing true nearest neighbors via a linear scan ..." << endl;
