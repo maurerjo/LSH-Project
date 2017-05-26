@@ -9,6 +9,10 @@
 #include "falconn/eigen_wrapper.h"
 #include "falconn/lsh_nn_table.h"
 
+typedef std::chrono::high_resolution_clock HighResClock;
+typedef std::chrono::time_point<HighResClock> Time;
+typedef std::chrono::duration<double, typename HighResClock::period> Cycle;
+
 using std::chrono::duration;
 using std::chrono::duration_cast;
 using std::chrono::high_resolution_clock;
@@ -20,6 +24,23 @@ using std::fixed;
 using std::scientific;
 using std::unique_ptr;
 using std::vector;
+
+class Stopwatch {
+ public:
+  Stopwatch() { start = std::chrono::high_resolution_clock::now(); }
+  long GetElapsedTime() {
+    Time end = std::chrono::high_resolution_clock::now();
+    Cycle tick_diff(end - start);
+    return tick_diff.count();
+  }
+  void PrintElapsedTime() {
+    Time end = std::chrono::high_resolution_clock::now();
+    Cycle tick_diff(end - start);
+    cout << tick_diff.count() << " cycles";
+  }
+ private:
+  Time start;
+};
 
 namespace data {
 
@@ -37,11 +58,13 @@ void SaveData(std::string filename, vector<float> data, int dimensions) {
   file.close();
 }
 
-vector<float> LoadData(std::string filename) {
+std::vector<float> LoadData(std::string filename, int &n, int &dimension) {
   std::ifstream file(filename);
-  vector<float> data;
+  std::vector<float> data;
   int num_points, dimensions;
   file >> num_points >> dimensions;
+  dimension = dimensions;
+  n = num_points;
   data.resize(num_points * dimensions);
   for (int i = 0; i < num_points * dimensions; i++) {
     file >> data[i];
@@ -82,9 +105,11 @@ void run_experiment(LSHNearestNeighborTable<PointType>* table,
                     const std::vector<PointType> queries,
                     const std::vector<int> true_nns, double* avg_query_time,
                     double* success_probability) {
+  cout << "Running experiment" << endl;
   double average_query_time_outside = 0.0;
   int num_correct = 0;
-
+  
+  Stopwatch stopwatch;
   for (int ii = 0; ii < static_cast<int>(queries.size()); ++ii) {
     Timer query_time;
 
@@ -95,6 +120,10 @@ void run_experiment(LSHNearestNeighborTable<PointType>* table,
       num_correct += 1;
     }
   }
+  long watch_time = stopwatch.GetElapsedTime();
+  cout << "Finished queries in " << watch_time << " cycles" << endl;
+  cout << "Finished queries in " << (float) watch_time / (float) queries.size() << " cycles/query" << endl;
+
 
   average_query_time_outside /= queries.size();
   *avg_query_time = average_query_time_outside;
@@ -199,7 +228,7 @@ int main() {
     }
     
     if (load_data) {
-      vector<float> data_points = data::LoadData("data/data_points");
+      vector<float> data_points = data::LoadData("data/data_points", n, d);
       n = data_points.size() / d;
       data.clear();
       for (int i = 0; i < data_points.size() / d; i++) {
@@ -209,7 +238,7 @@ int main() {
 		  }
 		  data.push_back(v);
 	  }
-	  vector<float> query_points = data::LoadData("data/query_points");
+	  vector<float> query_points = data::LoadData("data/query_points", num_queries, d);
       queries.clear();
       for (int i = 0; i < query_points.size() / d; i++) {
 		  Vec v(d);
@@ -245,40 +274,6 @@ int main() {
     average_scan_time /= num_queries;
     cout << "Average query time: " << average_scan_time << " seconds" << endl
          << sepline << endl;
-
-    // Hyperplane hashing
-    LSHConstructionParameters params_hp;
-    params_hp.dimension = d;
-    params_hp.lsh_family = LSHFamily::Hyperplane;
-    params_hp.distance_function = distance_function;
-    params_hp.storage_hash_table = storage_hash_table;
-    params_hp.k = 19;
-    params_hp.l = num_tables;
-    params_hp.num_setup_threads = num_setup_threads;
-    params_hp.seed = seed ^ 833840234;
-
-    cout << "Hyperplane hash" << endl << endl;
-
-    Timer hp_construction;
-
-    unique_ptr<LSHNearestNeighborTable<Vec>> hptable(
-        std::move(construct_table<Vec>(data, params_hp)));
-    hptable->set_num_probes(2464);
-
-    double hp_construction_time = hp_construction.elapsed_seconds();
-
-    cout << "k = " << params_hp.k << endl;
-    cout << "l = " << params_hp.l << endl;
-    cout << "Number of probes = " << hptable->get_num_probes() << endl;
-    cout << "Construction time: " << hp_construction_time << " seconds" << endl
-         << endl;
-
-    double hp_avg_time;
-    double hp_success_prob;
-    run_experiment(hptable.get(), queries, true_nn, &hp_avg_time,
-                   &hp_success_prob);
-    cout << sepline << endl;
-    hptable.reset(nullptr);
 
     // Cross polytope hashing
     LSHConstructionParameters params_cp;
@@ -318,18 +313,13 @@ int main() {
 
     cout << sepline << endl << "Summary:" << endl;
     cout << "Success probabilities:" << endl;
-    cout << "  HP: " << fixed << hp_success_prob << endl;
     cout << "  CP: " << cp_success_prob << endl;
     cout << "Average query times (seconds):" << endl;
     cout << "  Linear scan time: " << scientific << average_scan_time << endl;
-    cout << "  HP time: " << hp_avg_time << endl;
     cout << "  CP time: " << cp_avg_time << endl;
     cout << "Speed-ups:" << endl;
-    cout << "  HP vs linear scan: " << fixed << average_scan_time / hp_avg_time
-         << endl;
     cout << "  CP vs linear scan: " << fixed << average_scan_time / cp_avg_time
          << endl;
-    cout << "  CP vs HP: " << fixed << hp_avg_time / cp_avg_time << endl;
   } catch (std::exception& e) {
     cerr << "exception: " << e.what() << endl;
     return 1;

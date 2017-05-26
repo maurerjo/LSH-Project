@@ -28,11 +28,13 @@ void SaveData(std::string filename, std::vector<float> data, int dimensions) {
   file.close();
 }
 
-std::vector<float> LoadData(std::string filename) {
+std::vector<float> LoadData(std::string filename, int &n, int &dimension) {
   std::ifstream file(filename);
   std::vector<float> data;
   int num_points, dimensions;
   file >> num_points >> dimensions;
+  dimension = dimensions;
+  n = num_points;
   data.resize(num_points * dimensions);
   for (int i = 0; i < num_points * dimensions; i++) {
     file >> data[i];
