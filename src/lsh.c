@@ -175,12 +175,24 @@ void precomputeRotation(){
     }
 }
 
+//Have buckets of size 2^k like falconn
 void set_table_entry(int table_idx, unsigned int hash, int entry_idx) {
-  tables[table_idx * table_size + (hash%table_size)] = entry_idx;
+    int entry_location =table_idx * table_size + (hash%(table_size>>k))<<k;
+    for(int i = 0; i<(1<<k);i++) {
+        if (tables[entry_location] == kUndefined) {
+            tables[entry_location] = entry_idx;
+            return;
+        }
+        entry_location++;
+    }
+    //printf("bucketoverflow for hash: %d\n",hash);
 }
 
-int get_neighbor(int table_idx, unsigned int hash) {
-  return tables[table_idx * table_size + (hash%table_size)];
+
+//return pointer to first potential nn
+int* get_neighbor(int table_idx, unsigned int hash) {
+    int address = table_idx * table_size + (hash%(table_size>>k))<<k;
+  return &tables[address];
 }
 
 
@@ -190,7 +202,6 @@ int get_neighbor(int table_idx, unsigned int hash) {
 //Performance: 3/8 flops/cycle
 int locality_sensitive_hash(float *data, int dim) {
     int res = 0;
-    //for(int i = 0;i<20;i++){
     float best = data[0];
     if (-data[0] > best) {//latency 4
         best = -data[0];
@@ -204,7 +215,7 @@ int locality_sensitive_hash(float *data, int dim) {
             best = -data[ii];
             res = ii + dim;//latency 1
         }
-    }//}
+    }
     return res;
 }
 
@@ -856,6 +867,24 @@ void print_random_rotation(int table_idx, int hash_idx){
         }
         printf("\n");
     }
+}
+
+int table_entries_used(){
+    int result= 0;
+    for(int i = 0; i<num_tables*table_size;i++){
+        if(tables[i]!=kUndefined)
+            result++;
+    }
+    return result;
+}
+
+int table_buckets_used(){
+    int result= 0;
+    for(int i = 0; i<num_tables*table_size;i+=1<<k){
+        if(tables[i]!=kUndefined)
+            result++;
+    }
+    return result;
 }
 
 //Additional function for testing Fast FHT

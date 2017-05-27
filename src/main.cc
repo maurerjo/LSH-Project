@@ -195,26 +195,15 @@ void random_rotation(vector<float> &x, vector<float>  &random_vector, vector<flo
 int main(){
     bool data_saved_this_run = false, queries_saved_this_run = false;
     init_rng();
-    vector<int> vd(8);
-    vector<int> vk(8);
-    int i = 0;
-    for(int d = 8;d<1025;d<<=1)
-        vd[i++]=d;
-    vk[0]=7;
-    vk[1]=5;
-    vk[2]=4;
-    vk[3]=3;
-    vk[4]=2;
-    vk[5]=2;
-    vk[6]=1;
-    vk[7]=1;
-    for(int d = 0;d<8;d++)
-        for(int s = 20;s<21;s+=2){
         Stopwatch watch;
         cout << "start\n";
-        const int size = (1 << s);
-        const int dimension = vd[d];
-        const int table_size = (1 << 22) - 104009;
+        const int size = (1 << 20);
+        const int log_size = ceil(log2(size));
+        const int log_dim = 3;
+        const int dimension = 1<<log_dim;
+        const int hash_bits = log_size;
+        const int k = 7;
+        const int table_size = ((1 << (hash_bits))+17)<<k;
         const int num_queries = 1 << 10;
         vector<float> data(size * dimension);
         cout << "create Data Set:\n" << size << " data points\n" << dimension << " dimensions\n";
@@ -243,7 +232,6 @@ int main(){
         //cross polytope
         cout << "Cross polytope hash" << endl;
         //cross polytope parameters
-        int k = vk[d]+s/20; //seems reasonable
         int  num_table = 10, num_rotation = 3;
         cout << "k = " << k << ", num_tables = " << num_table << ", num_rotation = " << num_rotation << endl;
         //setup tables
@@ -387,20 +375,23 @@ int main(){
                 crosspolytope(rotations_vec_c, &result_c, 1);
 
                 //cout <<" "<< result[0]<<" ";
-                int id_c;
+                int* id_c;
                 //latency RAM acces: 42 cycles + 51 ns latency (info Intel) = ~200 cycle
                 //latency L3 acces: 42 cycles (info Intel)
                 id_c = get_neighbor(i, result_c);
                 //cout << result_c << ", " << id_c << ", " << nnIDs[ii] <<endl;
-                if (id_c != -1) {
-                    float current_distance;
-                    //minimal runtime: dim + 15
-                    current_distance = negative_inner_product(&data[id_c * dimension], &queries[ii * dimension]);
-                    if (current_distance > min_c_distance) {
-                        min_c_distance = current_distance;
-                        cp_c_result[ii] = id_c;
+                for(int bucket_idx = 0; bucket_idx < (1<<k);bucket_idx++){
+                    int current_id = id_c[bucket_idx];
+                    if (current_id != -1) {
+                        float current_distance;
+                        //minimal runtime: dim + 15
+                        current_distance = negative_inner_product(&data[current_id * dimension], &queries[ii * dimension]);
+                        if (current_distance > min_c_distance) {
+                            min_c_distance = current_distance;
+                            cp_c_result[ii] = current_id;
+                        }
+                        //cout << i << ", " << ii << ", " << tables[i][result[0] % table_size]<< ", " << nnIDs[ii]<<endl;
                     }
-                    //cout << i << ", " << ii << ", " << tables[i][result[0] % table_size]<< ", " << nnIDs[ii]<<endl;
                 }
             }
         }
@@ -442,7 +433,7 @@ int main(){
         } else {//slower memory load
             rotation_tt = k * ((dimension * dimension / 8) + dimension + 14);
         }
-        int hash_tt = k * 12 / 8 * dimension;
+        int hash_tt = k * 12 * dimension / 8;//make floats
         int distance_tt = dimension + 15;
         int table_tt = 200;
         cout << "Minimal runtime of all parts per query: "
@@ -468,20 +459,23 @@ int main(){
                 crosspolytope(rotations_vec_c, &result_c, 1);
 
                 //cout <<" "<< result[0]<<" ";
-                int id_c;
+                int* id_c;
                 //latency RAM acces: 42 cycles + 51 ns latency (info Intel) = ~200 cycle
                 //latency L3 acces: 42 cycles (info Intel)
                 id_c = get_neighbor(i, result_c);
                 //cout << result_c << ", " << id_c << ", " << nnIDs[ii] <<endl;
-                if (id_c != -1) {
-                    float current_distance;
-                    //minimal runtime: dim + 15
-                    current_distance = negative_inner_product(&data[id_c * dimension], &queries[ii * dimension]);
-                    if (current_distance > min_c_distance) {
-                        min_c_distance = current_distance;
-                        ffht_c_result[ii] = id_c;
+                for(int bucket_idx = 0; bucket_idx < (1<<k);bucket_idx++){
+                    int current_id = id_c[bucket_idx];
+                    if (current_id != -1) {
+                        float current_distance;
+                        //minimal runtime: dim + 15
+                        current_distance = negative_inner_product(&data[current_id * dimension], &queries[ii * dimension]);
+                        if (current_distance > min_c_distance) {
+                            min_c_distance = current_distance;
+                            ffht_c_result[ii] = current_id;
+                        }
+                        //cout << i << ", " << ii << ", " << tables[i][result[0] % table_size]<< ", " << nnIDs[ii]<<endl;
                     }
-                    //cout << i << ", " << ii << ", " << tables[i][result[0] % table_size]<< ", " << nnIDs[ii]<<endl;
                 }
             }
         }
@@ -521,17 +515,20 @@ int main(){
                     //cout <<" "<< result[0]<<" ";
                     //latency RAM acces: 42 cycles + 51 ns latency (info Intel) = ~200 cycle
                     //latency L3 acces: 42 cycles (info Intel)
-                    int id_c = get_neighbor(i, result_c);
+                    int* id_c = get_neighbor(i, result_c);
                     //cout << result_c << ", " << id_c << ", " << nnIDs[ii] <<endl;
-                    if (id_c != -1) {//latency 4
-                        //minimal runtime: dim + 15
-                        float current_distance = negative_inner_product(&data[id_c * dimension],
-                                                                        &queries[(ii + b) * dimension]);
-                        if (current_distance > min_cb_distance[b]) {//latency 4
-                            min_cb_distance[b] = current_distance;
-                            cp_cb_result[ii + b] = id_c;
+                    for(int bucket_idx = 0; bucket_idx < (1<<k);bucket_idx++){
+                        int current_id = id_c[bucket_idx];
+                        if (current_id != -1) {
+                            float current_distance;
+                            //minimal runtime: dim + 15
+                            current_distance = negative_inner_product(&data[current_id * dimension], &queries[(ii+b) * dimension]);
+                            if (current_distance > min_cb_distance[b]) {
+                                min_cb_distance[b] = current_distance;
+                                cp_cb_result[ii+b] = current_id;
+                            }
+                            //cout << i << ", " << ii << ", " << tables[i][result[0] % table_size]<< ", " << nnIDs[ii]<<endl;
                         }
-                        //cout << i << ", " << ii << ", " << tables[i][result[0] % table_size]<< ", " << nnIDs[ii]<<endl;
                     }
                 }
             }
@@ -589,15 +586,14 @@ int main(){
         cout << "Speed up to C++: " << (double) cp_time / (double) cp_c_time << endl;
         cout << "Speed up to C: " << (double) cp_c_time / (double) cp_cb_time << endl;
         cout << "Speed up to FFHT: " << (double) ffht_c_time / (double) cp_cb_time << endl;
-        cout << table_used << " table entries used" << endl;
+    cout << table_entries_used() << " table entries used" << endl;
+    cout << table_buckets_used() << " table buckets used" << endl;
         cout << "Program ran for: " << endl;
         watch.PrintElapsedTime();
         cout << endl;
         cout << endl;
         cout << endl;
         cout << endl;
-        cleanup();
-    }
     return 0;
 }
 
