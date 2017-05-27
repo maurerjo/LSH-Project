@@ -177,7 +177,7 @@ void precomputeRotation(){
 
 //Have buckets of size 2^k like falconn
 void set_table_entry(int table_idx, unsigned int hash, int entry_idx) {
-    int entry_location =table_idx * table_size + (hash%(table_size>>k))<<k;
+    int entry_location =table_idx * table_size + (hash<<k)%table_size;
     for(int i = 0; i<(1<<k);i++) {
         if (tables[entry_location] == kUndefined) {
             tables[entry_location] = entry_idx;
@@ -191,7 +191,7 @@ void set_table_entry(int table_idx, unsigned int hash, int entry_idx) {
 
 //return pointer to first potential nn
 int* get_neighbor(int table_idx, unsigned int hash) {
-    int address = table_idx * table_size + (hash%(table_size>>k))<<k;
+    int address = table_idx * table_size + (hash<<k)%table_size;
   return &tables[address];
 }
 
