@@ -191,21 +191,21 @@ void random_rotation(vector<float> &x, vector<float>  &random_vector, vector<flo
 }
 
 const bool cpp_baseline_active = false;
-const bool c_baseline_active = false;
+const bool c_baseline_active = true;
 const bool ffht_active = false;
-const bool save_data = false;
+const bool save_data = true;
 
 int main(){
     bool data_saved_this_run = false, queries_saved_this_run = false;
     init_rng();
     Stopwatch watch;
     cout << "start\n";
-    const int size = (1 << 20);
+    const int size = (1 << 16);
     const int log_size = ceil(log2(size));
     const int log_dim = 3;
     const int dimension = 1<<log_dim;
     const int hash_bits = log_size;
-    const int k = 7;
+    const int k = 31 / (log_dim + 1);
     const int table_size = ((1 << (hash_bits))+17)<<k;
     const int num_queries = 1 << 10;
     vector<float> data(size * dimension);
