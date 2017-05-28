@@ -197,12 +197,12 @@ int main(){
     init_rng();
         Stopwatch watch;
         cout << "start\n";
-        const int size = (1 << 20);
+        const int size = (1 << 10);
         const int log_size = ceil(log2(size));
-        const int log_dim = 3;
+        const int log_dim = 10;
         const int dimension = 1<<log_dim;
         const int hash_bits = log_size;
-        const int k = 7;
+        const int k = 1;
         const int table_size = ((1 << (hash_bits))+17)<<k;
         const int num_queries = 1 << 10;
         vector<float> data(size * dimension);
