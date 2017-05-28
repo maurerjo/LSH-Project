@@ -111,6 +111,7 @@ void run_experiment(LSHNearestNeighborTable<PointType>* table,
   
   Stopwatch stopwatch;
   for (int ii = 0; ii < static_cast<int>(queries.size()); ++ii) {
+	//Confirmed that the timer cost is negligible.
     Timer query_time;
 
     int32_t res = table->find_nearest_neighbor(queries[ii]);
@@ -228,7 +229,7 @@ int main() {
     }
     
     if (load_data) {
-      vector<float> data_points = data::LoadData("data/data_points", n, d);
+      vector<float> data_points = data::LoadData("../data/data_points", n, d);
       n = data_points.size() / d;
       data.clear();
       for (int i = 0; i < data_points.size() / d; i++) {
@@ -238,7 +239,7 @@ int main() {
 		  }
 		  data.push_back(v);
 	  }
-	  vector<float> query_points = data::LoadData("data/query_points", num_queries, d);
+	  vector<float> query_points = data::LoadData("../data/query_points", num_queries, d);
       queries.clear();
       for (int i = 0; i < query_points.size() / d; i++) {
 		  Vec v(d);
@@ -281,9 +282,9 @@ int main() {
     params_cp.lsh_family = LSHFamily::CrossPolytope;
     params_cp.distance_function = distance_function;
     params_cp.storage_hash_table = storage_hash_table;
-    params_cp.k = 3;
+    params_cp.k = 31 / (std::ceil(std::log2(d)) + 1);
     params_cp.l = num_tables;
-    params_cp.last_cp_dimension = 16;
+    params_cp.last_cp_dimension = d;
     params_cp.num_rotations = 3;
     params_cp.num_setup_threads = num_setup_threads;
     params_cp.seed = seed ^ 833840234;
@@ -294,7 +295,7 @@ int main() {
 
     unique_ptr<LSHNearestNeighborTable<Vec>> cptable(
         std::move(construct_table<Vec>(data, params_cp)));
-    cptable->set_num_probes(896);
+    cptable->set_num_probes(num_tables);
 
     double cp_construction_time = cp_construction.elapsed_seconds();
 
