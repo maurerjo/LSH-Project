@@ -11,10 +11,12 @@
 #include <vector>
 #include <string>
 #include <fstream>
+#include <iostream>
 
 namespace data {
 
 void SaveData(std::string filename, std::vector<float> data, int dimensions) {
+  std::cout << "Saving data to file!" << std::endl;
   std::ofstream file(filename);
   int num_points = data.size() / dimensions;
   file << num_points << " " << dimensions << std::endl;
@@ -24,11 +26,14 @@ void SaveData(std::string filename, std::vector<float> data, int dimensions) {
     }
     file << std::endl;
   }
+  std::cout << "Wrote data! Flushing..." << std::endl;
   file.flush();
   file.close();
+  std::cout << "File closed!" << std::endl;
 }
 
 std::vector<float> LoadData(std::string filename, int &n, int &dimension) {
+  std::cout << "Loading data from file!" << std::endl;
   std::ifstream file(filename);
   std::vector<float> data;
   int num_points, dimensions;
@@ -40,6 +45,7 @@ std::vector<float> LoadData(std::string filename, int &n, int &dimension) {
     file >> data[i];
   }
   file.close();
+  std::cout << "File closed!" << std::endl;
   return data;
 }
 
