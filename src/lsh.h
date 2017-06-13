@@ -13,14 +13,14 @@ enum CrossPolytopVersion {
   kUseBaseCrossPolytope
 };
 
-const int kCrossPolytopeVersion = kUseBaseCrossPolytope;
+const int kCrossPolytopeVersion = kUseOptimizedCrossPolytope;
 
 enum NegInnerProductVersion {
   kUseVectorizedInnerProduct,
   kUseScalarInnerProduct
 };
 
-const int kInnerProductVersion = kUseScalarInnerProduct;
+const int kInnerProductVersion = kUseVectorizedInnerProduct;
 
 enum RotationVersion {
   kUseBaselineC,

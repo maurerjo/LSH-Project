@@ -2,8 +2,8 @@ CC = gcc
 CPP = g++
 OBJS = build/lsh.o
 CXX = -std=c++11
-OPTF = -flto -march=native -O2
-#OPTF = -flto -march=native -Ofast -funsafe-math-optimizations
+#OPTF = -flto -march=native -O2
+OPTF = -flto -march=native -Ofast -funsafe-math-optimizations
 
 all: $(OBJS) main
 

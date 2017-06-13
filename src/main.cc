@@ -202,10 +202,10 @@ int main(){
     cout << "start\n";
     const int size = (1 << 16);
     const int log_size = ceil(log2(size));
-    const int log_dim = 3;
+    const int log_dim = 7;
     const int dimension = 1<<log_dim;
     const int hash_bits = log_size;
-    const int k = 31 / (log_dim + 1);
+    const int k = (31 / (log_dim + 1)) - 1;
     const int table_size = ((1 << (hash_bits))+17)<<k;
     const int num_queries = 1 << 10;
     vector<float> data(size * dimension);
@@ -235,7 +235,7 @@ int main(){
     //cross polytope
     cout << "Cross polytope hash" << endl;
     //cross polytope parameters
-    int  num_table = 10, num_rotation = 3;
+    int  num_table = 8, num_rotation = 3;
     cout << "k = " << k << ", num_tables = " << num_table << ", num_rotation = " << num_rotation << endl;
     //setup tables
     cout << "Create Tables" << endl;
@@ -513,7 +513,7 @@ int main(){
     cout << "Start bulked C queries" << endl;
     Stopwatch cp_cb_query_watch;
     vector<int> cp_cb_result(num_queries);//1 cycle per query ;P
-    int bulk_factor = 1<<5;
+    int bulk_factor = 1<<9;
     for (int ii = 0; ii < num_queries; ii += bulk_factor) {
         vector<float> min_cb_distance(bulk_factor, -1000000.0);
         for (int i = 0; i < num_table; i++) {
