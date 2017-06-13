@@ -331,7 +331,12 @@ void crosspolytope(float *x, unsigned int *result, int result_size) {
     int cldim = (int)ceil(log2(num_dimensions))+1;
     for(int ii = 0; ii<k;ii++){
         result[i]<<=cldim;
-        result[i]|= locality_sensitive_hash_optimized(&x[ii * num_dimensions], num_dimensions);
+        if (kCrossPolytopeVersion == kUseOptimizedCrossPolytope) {
+          result[i]|= locality_sensitive_hash_optimized(&x[ii * num_dimensions], num_dimensions);
+        }
+        else {
+          result[i]|= locality_sensitive_hash(&x[ii * num_dimensions], num_dimensions);
+        }
     }
   }
 }
@@ -788,9 +793,21 @@ void random_rotation_ffht(float *x, int table_idx, int hash_rotation_idx, int ro
 //runtime per query: k * random_rotation_precomputed_vectorized_unrolled2 =
 // k * ((dim * dim / 16) + dim + 14)
 void rotations_precomputed(int table_idx, float *data_point, float *result_vec) {
+  if (kRotationVersion == kUseBaselineC) {
+    rotations(table_idx, data_point, result_vec);
+  }
+  else {
     for(int j = 0;j<k;j++) {
+      if (kRotationVersion == kUsePrecomputedVectorizedUnrolled)
         random_rotation_precomputed_vectorized_unrolled2(data_point, table_idx, j, &result_vec[j*num_dimensions]);
+      else if (kRotationVersion == kUsePrecomputedVectorized) {
+        random_rotation_precomputed_vectorized(data_point, table_idx, j, &result_vec[j*num_dimensions]);
+      }
+      else if (kRotationVersion == kUsePrecomputed) {
+        random_rotation_precomputed(data_point, table_idx, j, &result_vec[j*num_dimensions]);
+      }
     }
+  }
 }
 
 
@@ -831,7 +848,8 @@ void rotations(int table_idx, float *data_point, float *result_vec) {
 //load 2 * dim * 4 bytes = dim cycles
 //runtime 4 + 6 / 8 * (dim-1) + 15
 //minimal runtime: load time + 15 = dim + 15 cycles
-float negative_inner_product(float * vec1, float * vec2){
+float negative_inner_product(float * vec1, float * vec2) {
+  if (kInnerProductVersion == kUseVectorizedInnerProduct) {
     __m256 sv1 = _mm256_loadu_ps(vec1);
     __m256 sv2 = _mm256_loadu_ps(vec2);
     __m256 result = _mm256_mul_ps(sv1,sv2);//latency 4
@@ -848,6 +866,14 @@ float negative_inner_product(float * vec1, float * vec2){
     lo = _mm256_castps256_ps128(sum2);
     vy = _mm_add_ps(lo, hi);//latency 3
     return _mm_cvtss_f32(vy);
+  }
+  else {
+    float result = 0;
+    for (int i = 0; i < num_dimensions; i++) {
+      result += vec1[i] * vec2[i];
+    }
+    return result;
+  }
 }
 
 void cleanup(){

@@ -1,8 +1,9 @@
 CC = gcc
 CPP = g++
 OBJS = build/lsh.o
-#OPTF = -flto -march=native -O2
-OPTF = -flto -march=native -Ofast -funsafe-math-optimizations
+CXX = -std=c++11
+OPTF = -flto -march=native -O2
+#OPTF = -flto -march=native -Ofast -funsafe-math-optimizations
 
 all: $(OBJS) main
 
@@ -10,7 +11,7 @@ clean:
 	rm -rf build/*
 
 main:
-	$(CPP) src/main.cc src/lsh.c -std=c++11 $(OPTF) -o build/lsh-project
+	$(CPP) src/main.cc src/lsh.c $(CXX) $(OPTF) -o build/lsh-project
 	
 build/lsh.o: src/lsh.h src/lsh.c
 	$(CC) -flto $(OPTF) -c src/lsh.h src/lsh.c

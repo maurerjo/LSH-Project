@@ -8,6 +8,32 @@
 #ifndef LSH_H_
 #define LSH_H_
 
+enum CrossPolytopVersion {
+  kUseOptimizedCrossPolytope,
+  kUseBaseCrossPolytope
+};
+
+const int kCrossPolytopeVersion = kUseBaseCrossPolytope;
+
+enum NegInnerProductVersion {
+  kUseVectorizedInnerProduct,
+  kUseScalarInnerProduct
+};
+
+const int kInnerProductVersion = kUseScalarInnerProduct;
+
+enum RotationVersion {
+  kUseBaselineC,
+  kUsePrecomputed,
+  kUsePrecomputedVectorized,
+  kUsePrecomputedVectorizedUnrolled
+  //kUsePrecomputedVectorizedBatched //Cannot be accessed via this switch at the moment
+};
+
+const int kRotationVersion = kUsePrecomputedVectorizedUnrolled;
+
+const int kBulkFactor = 1 << 9;
+
 int locality_sensitive_hash(float *data, int dim);
 void crosspolytope(float *x, unsigned int *result, int result_size);
 void random_rotation(float *x, int table_idx, int hash_rotation_idx, int rotation_idx, float *rotated_x);
